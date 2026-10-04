@@ -22,14 +22,20 @@ backend/
 ├── database.py          # Conexión y sesión de base de datos
 ├── models.py            # Tablas (SQLAlchemy)
 ├── schemas.py           # Validación de entrada/salida (Pydantic)
-├── routers/             # Endpoints agrupados por recurso
+├── routers/             # Endpoints agrupados por recurso (teachers, classrooms, schedules, ...)
 ├── services/
 │   ├── csp.py           # Algoritmo de generación de horarios
-│   ├── conflictos.py    # Detector de conflictos
-│   ├── estadisticas.py  # Ocupación, carga y cumplimiento
+│   ├── conflicts.py     # Detector de conflictos
+│   ├── stats.py         # Ocupación, carga y cumplimiento
 │   └── seed.py          # Datos de demostración
 └── tests/               # Pruebas automatizadas
 ```
+
+### Convención de idioma
+
+- **Código en inglés:** clases, funciones, variables, archivos, comentarios y logs.
+- **Español en lo que ve el usuario:** mensajes de error, textos de la documentación de `/docs`.
+- **Contrato en español:** las URLs (`/profesores`), los campos JSON (`nombre`, `aforo`) y las tablas y columnas de la base de datos se mantienen en español para no romper el frontend ni migrar datos. Por eso un modelo en inglés conserva atributos como `Teacher.nombre`.
 
 ## Instalación y ejecución
 
