@@ -6,6 +6,9 @@ from models import Aula, DisponibilidadProfesor, Grupo, Materia
 
 DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
 
+# Un grupo no puede tener mas de este numero de horas de clase en un mismo dia
+MAX_HORAS_DIA_GRUPO = 4
+
 
 def generar_bloques_horarios(hora_inicio: time, hora_fin: time):
     """Convierte un rango de disponibilidad en bloques de 1 hora."""
@@ -65,6 +68,7 @@ def calcular_asignaciones(db: Session):
     ocupado_profesor = set()
     ocupado_aula = set()
     ocupado_grupo = set()
+    horas_grupo_dia = {}
     resultado = []
 
     def asignar_materia(index):
@@ -97,6 +101,8 @@ def calcular_asignaciones(db: Session):
                 dia, hora, aula = candidatos[i]
                 if dia in dias_usados:
                     continue
+                if horas_grupo_dia.get((materia.grupo_id, dia), 0) >= MAX_HORAS_DIA_GRUPO:
+                    continue
                 clave_prof = (materia.profesor_id, dia, hora)
                 clave_aula = (aula.id, dia, hora)
                 clave_grupo = (materia.grupo_id, dia, hora)
@@ -106,6 +112,7 @@ def calcular_asignaciones(db: Session):
                 ocupado_profesor.add(clave_prof)
                 ocupado_aula.add(clave_aula)
                 ocupado_grupo.add(clave_grupo)
+                horas_grupo_dia[(materia.grupo_id, dia)] = horas_grupo_dia.get((materia.grupo_id, dia), 0) + 1
                 resultado.append((materia, aula, dia, hora))
                 dias_usados.add(dia)
 
@@ -115,6 +122,7 @@ def calcular_asignaciones(db: Session):
                 ocupado_profesor.discard(clave_prof)
                 ocupado_aula.discard(clave_aula)
                 ocupado_grupo.discard(clave_grupo)
+                horas_grupo_dia[(materia.grupo_id, dia)] -= 1
                 resultado.pop()
                 dias_usados.discard(dia)
             return False
