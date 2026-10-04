@@ -16,6 +16,7 @@ from schemas import (
     MateriaCreate, MateriaOut,
     HorarioOut, HorarioUpdate,
 )
+from routers import disponibilidad
 from routers import materias
 from routers import grupos
 from routers import aulas
@@ -39,6 +40,7 @@ app.include_router(profesores.router)
 app.include_router(aulas.router)
 app.include_router(grupos.router)
 app.include_router(materias.router)
+app.include_router(disponibilidad.router)
 
 
 @app.get("/")
@@ -50,24 +52,6 @@ def root():
 def health(db: Session = Depends(get_db)):
     db.execute(text("SELECT 1"))
     return {"estado": "ok", "base_de_datos": "conectada"}
-
-
-# ---------- ENDPOINTS: DISPONIBILIDAD ----------
-
-@app.post("/disponibilidad", response_model=DisponibilidadOut)
-def crear_disponibilidad(disp: DisponibilidadCreate, db: Session = Depends(get_db)):
-    profesor = db.query(Profesor).filter(Profesor.id == disp.profesor_id).first()
-    if not profesor:
-        raise HTTPException(status_code=404, detail="Profesor no encontrado")
-    nueva = DisponibilidadProfesor(**disp.dict())
-    db.add(nueva)
-    db.commit()
-    db.refresh(nueva)
-    return nueva
-
-@app.get("/disponibilidad/{profesor_id}", response_model=List[DisponibilidadOut])
-def listar_disponibilidad(profesor_id: int, db: Session = Depends(get_db)):
-    return db.query(DisponibilidadProfesor).filter(DisponibilidadProfesor.profesor_id == profesor_id).all()
 
 
 # ---------- ALGORITMO CSP: ASIGNACIÓN DE HORARIOS ----------
