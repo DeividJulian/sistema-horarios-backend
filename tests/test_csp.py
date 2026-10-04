@@ -1,0 +1,52 @@
+from datetime import time
+
+from models import Aula, DisponibilidadProfesor, Grupo, Materia, Profesor
+from services import csp
+
+
+def _escenario(db, aforo_aula=40, estudiantes=30, intensidad=3):
+    aula = Aula(nombre="A1", aforo=aforo_aula)
+    grupo = Grupo(nombre="G1", num_estudiantes=estudiantes)
+    prof = Profesor(nombre="Prof", email="prof@ucc.edu.co")
+    db.add_all([aula, grupo, prof])
+    db.flush()
+    for dia in ["Lunes", "Martes", "Miércoles"]:
+        db.add(DisponibilidadProfesor(profesor_id=prof.id, dia_semana=dia, hora_inicio=time(8), hora_fin=time(10)))
+    db.add(Materia(nombre="M1", intensidad_horaria=intensidad, grupo_id=grupo.id, profesor_id=prof.id))
+    db.commit()
+
+
+def test_asigna_dias_distintos_a_una_materia(db):
+    _escenario(db)
+    exito, asignaciones, _ = csp.calcular_asignaciones(db)
+    assert exito
+    dias = [dia for _, _, dia, _ in asignaciones]
+    assert len(dias) == len(set(dias)) == 3
+
+
+def test_falla_si_el_aula_no_tiene_aforo(db):
+    _escenario(db, aforo_aula=10, estudiantes=30)
+    exito, asignaciones, mensaje = csp.calcular_asignaciones(db)
+    assert not exito and asignaciones == []
+    assert "No fue posible" in mensaje
+
+
+def test_falla_si_faltan_dias_disponibles(db):
+    _escenario(db, intensidad=5)  # el profesor solo tiene 3 días
+    exito, _, _ = csp.calcular_asignaciones(db)
+    assert not exito
+
+
+def test_limite_de_tiempo_devuelve_mensaje(db, monkeypatch):
+    _escenario(db)
+    monkeypatch.setattr(csp, "TIEMPO_LIMITE_SEG", 0)
+    exito, _, mensaje = csp.calcular_asignaciones(db)
+    assert not exito
+    assert "límite" in mensaje
+
+
+def test_respeta_maximo_de_horas_diarias_por_grupo(db, monkeypatch):
+    _escenario(db)
+    monkeypatch.setattr(csp, "MAX_HORAS_DIA_GRUPO", 0)
+    exito, _, _ = csp.calcular_asignaciones(db)
+    assert not exito
