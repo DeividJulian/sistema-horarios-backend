@@ -16,6 +16,7 @@ from schemas import (
     MateriaCreate, MateriaOut,
     HorarioOut, HorarioUpdate,
 )
+from routers import profesores
 
 Base.metadata.create_all(bind=engine)
 
@@ -31,6 +32,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(profesores.router)
+
 
 @app.get("/")
 def root():
@@ -41,21 +44,6 @@ def root():
 def health(db: Session = Depends(get_db)):
     db.execute(text("SELECT 1"))
     return {"estado": "ok", "base_de_datos": "conectada"}
-
-
-# ---------- ENDPOINTS: PROFESORES ----------
-
-@app.post("/profesores", response_model=ProfesorOut)
-def crear_profesor(profesor: ProfesorCreate, db: Session = Depends(get_db)):
-    nuevo = Profesor(**profesor.dict())
-    db.add(nuevo)
-    db.commit()
-    db.refresh(nuevo)
-    return nuevo
-
-@app.get("/profesores", response_model=List[ProfesorOut])
-def listar_profesores(db: Session = Depends(get_db)):
-    return db.query(Profesor).all()
 
 
 # ---------- ENDPOINTS: DISPONIBILIDAD ----------
