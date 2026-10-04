@@ -23,7 +23,7 @@ def crear_aula(aula: AulaCreate, db: Session = Depends(get_db)):
     if nombre_en_uso(db, aula.nombre):
         raise HTTPException(status_code=409, detail="Ya existe un aula con ese nombre")
 
-    nueva = Aula(**aula.dict())
+    nueva = Aula(**aula.model_dump())
     db.add(nueva)
     db.commit()
     db.refresh(nueva)

@@ -20,7 +20,7 @@ def validar_referencias(materia: MateriaCreate, db: Session):
 @router.post("", response_model=MateriaOut)
 def crear_materia(materia: MateriaCreate, db: Session = Depends(get_db)):
     validar_referencias(materia, db)
-    nueva = Materia(**materia.dict())
+    nueva = Materia(**materia.model_dump())
     db.add(nueva)
     db.commit()
     db.refresh(nueva)

@@ -15,7 +15,7 @@ def crear_disponibilidad(disp: DisponibilidadCreate, db: Session = Depends(get_d
     profesor = db.query(Profesor).filter(Profesor.id == disp.profesor_id).first()
     if not profesor:
         raise HTTPException(status_code=404, detail="Profesor no encontrado")
-    nueva = DisponibilidadProfesor(**disp.dict())
+    nueva = DisponibilidadProfesor(**disp.model_dump())
     db.add(nueva)
     db.commit()
     db.refresh(nueva)

@@ -12,7 +12,7 @@ router = APIRouter(prefix="/grupos", tags=["Grupos"])
 
 @router.post("", response_model=GrupoOut)
 def crear_grupo(grupo: GrupoCreate, db: Session = Depends(get_db)):
-    nuevo = Grupo(**grupo.dict())
+    nuevo = Grupo(**grupo.model_dump())
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)

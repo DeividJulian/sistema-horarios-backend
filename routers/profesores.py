@@ -23,7 +23,7 @@ def crear_profesor(profesor: ProfesorCreate, db: Session = Depends(get_db)):
     if correo_en_uso(db, profesor.email):
         raise HTTPException(status_code=409, detail="Ya existe un profesor con ese correo")
 
-    nuevo = Profesor(**profesor.dict())
+    nuevo = Profesor(**profesor.model_dump())
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
