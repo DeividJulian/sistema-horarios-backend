@@ -1,6 +1,7 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -10,8 +11,18 @@ from schemas import AulaCreate, AulaOut
 router = APIRouter(prefix="/aulas", tags=["Aulas"])
 
 
+def nombre_en_uso(db: Session, nombre: str, excluir_id: int | None = None) -> bool:
+    consulta = db.query(Aula).filter(func.lower(Aula.nombre) == nombre.lower())
+    if excluir_id is not None:
+        consulta = consulta.filter(Aula.id != excluir_id)
+    return consulta.first() is not None
+
+
 @router.post("", response_model=AulaOut)
 def crear_aula(aula: AulaCreate, db: Session = Depends(get_db)):
+    if nombre_en_uso(db, aula.nombre):
+        raise HTTPException(status_code=409, detail="Ya existe un aula con ese nombre")
+
     nueva = Aula(**aula.dict())
     db.add(nueva)
     db.commit()
@@ -29,6 +40,9 @@ def actualizar_aula(aula_id: int, datos: AulaCreate, db: Session = Depends(get_d
     aula = db.query(Aula).filter(Aula.id == aula_id).first()
     if not aula:
         raise HTTPException(status_code=404, detail="Aula no encontrada")
+
+    if nombre_en_uso(db, datos.nombre, excluir_id=aula_id):
+        raise HTTPException(status_code=409, detail="Ya existe otra aula con ese nombre")
 
     aula.nombre = datos.nombre
     aula.aforo = datos.aforo
