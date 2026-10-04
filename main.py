@@ -3,7 +3,7 @@ from datetime import time
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine, Column, Integer, String, Time, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Time, ForeignKey, text
 from sqlalchemy.orm import sessionmaker, relationship, Session, declarative_base
 from pydantic import BaseModel
 from typing import List
@@ -170,6 +170,12 @@ def get_db():
 @app.get("/")
 def root():
     return {"mensaje": "API Sistema de Horarios funcionando"}
+
+
+@app.get("/health")
+def health(db: Session = Depends(get_db)):
+    db.execute(text("SELECT 1"))
+    return {"estado": "ok", "base_de_datos": "conectada"}
 
 
 # ---------- ENDPOINTS: PROFESORES ----------
