@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Classroom, ScheduleEntry
-from schemas import AulaCreate, AulaOut
+from schemas import ClassroomCreate, ClassroomOut
 
 router = APIRouter(prefix="/aulas", tags=["Aulas"])
 
@@ -18,8 +18,8 @@ def nombre_en_uso(db: Session, nombre: str, excluir_id: int | None = None) -> bo
     return consulta.first() is not None
 
 
-@router.post("", response_model=AulaOut)
-def crear_aula(classroom: AulaCreate, db: Session = Depends(get_db)):
+@router.post("", response_model=ClassroomOut)
+def crear_aula(classroom: ClassroomCreate, db: Session = Depends(get_db)):
     if nombre_en_uso(db, classroom.nombre):
         raise HTTPException(status_code=409, detail="Ya existe un aula con ese nombre")
 
@@ -30,13 +30,13 @@ def crear_aula(classroom: AulaCreate, db: Session = Depends(get_db)):
     return nueva
 
 
-@router.get("", response_model=List[AulaOut])
+@router.get("", response_model=List[ClassroomOut])
 def listar_aulas(db: Session = Depends(get_db)):
     return db.query(Classroom).all()
 
 
-@router.put("/{aula_id}", response_model=AulaOut)
-def actualizar_aula(aula_id: int, datos: AulaCreate, db: Session = Depends(get_db)):
+@router.put("/{aula_id}", response_model=ClassroomOut)
+def actualizar_aula(aula_id: int, datos: ClassroomCreate, db: Session = Depends(get_db)):
     classroom = db.query(Classroom).filter(Classroom.id == aula_id).first()
     if not classroom:
         raise HTTPException(status_code=404, detail="Aula no encontrada")

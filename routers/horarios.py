@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Classroom, ScheduleEntry, Subject, Teacher
-from schemas import HorarioOut, HorarioUpdate
+from schemas import ScheduleEntryOut, ScheduleEntryMove
 from services.csp import calcular_asignaciones
 
 logger = logging.getLogger("horarios.generacion")
@@ -41,12 +41,12 @@ def generar_horario(db: Session = Depends(get_db)):
     return {"mensaje": "Horario generado exitosamente", "total_bloques": len(asignaciones)}
 
 
-@router.get("/horarios", response_model=List[HorarioOut])
+@router.get("/horarios", response_model=List[ScheduleEntryOut])
 def listar_horarios(db: Session = Depends(get_db)):
     return db.query(ScheduleEntry).all()
 
 
-@router.get("/horarios/grupo/{grupo_id}", response_model=List[HorarioOut])
+@router.get("/horarios/grupo/{grupo_id}", response_model=List[ScheduleEntryOut])
 def horarios_por_grupo(grupo_id: int, db: Session = Depends(get_db)):
     return (
         db.query(ScheduleEntry)
@@ -56,7 +56,7 @@ def horarios_por_grupo(grupo_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/horarios/profesor/{profesor_id}", response_model=List[HorarioOut])
+@router.get("/horarios/profesor/{profesor_id}", response_model=List[ScheduleEntryOut])
 def horarios_por_profesor(profesor_id: int, db: Session = Depends(get_db)):
     teacher = db.query(Teacher).filter(Teacher.id == profesor_id).first()
     if not teacher:
@@ -71,7 +71,7 @@ def horarios_por_profesor(profesor_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/horarios/aula/{aula_id}", response_model=List[HorarioOut])
+@router.get("/horarios/aula/{aula_id}", response_model=List[ScheduleEntryOut])
 def horarios_por_aula(aula_id: int, db: Session = Depends(get_db)):
     classroom = db.query(Classroom).filter(Classroom.id == aula_id).first()
     if not classroom:
@@ -85,8 +85,8 @@ def horarios_por_aula(aula_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.put("/horarios/{horario_id}", response_model=HorarioOut)
-def mover_horario(horario_id: int, datos: HorarioUpdate, db: Session = Depends(get_db)):
+@router.put("/horarios/{horario_id}", response_model=ScheduleEntryOut)
+def mover_horario(horario_id: int, datos: ScheduleEntryMove, db: Session = Depends(get_db)):
     horario = db.query(ScheduleEntry).filter(ScheduleEntry.id == horario_id).first()
     if not horario:
         raise HTTPException(status_code=404, detail="Horario no encontrado")

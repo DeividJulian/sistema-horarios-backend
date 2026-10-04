@@ -5,13 +5,13 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import TeacherAvailability, Teacher
-from schemas import DisponibilidadCreate, DisponibilidadOut
+from schemas import AvailabilityCreate, AvailabilityOut
 
 router = APIRouter(prefix="/disponibilidad", tags=["Disponibilidad"])
 
 
-@router.post("", response_model=DisponibilidadOut)
-def crear_disponibilidad(disp: DisponibilidadCreate, db: Session = Depends(get_db)):
+@router.post("", response_model=AvailabilityOut)
+def crear_disponibilidad(disp: AvailabilityCreate, db: Session = Depends(get_db)):
     teacher = db.query(Teacher).filter(Teacher.id == disp.profesor_id).first()
     if not teacher:
         raise HTTPException(status_code=404, detail="Profesor no encontrado")
@@ -22,7 +22,7 @@ def crear_disponibilidad(disp: DisponibilidadCreate, db: Session = Depends(get_d
     return nueva
 
 
-@router.get("/{profesor_id}", response_model=List[DisponibilidadOut])
+@router.get("/{profesor_id}", response_model=List[AvailabilityOut])
 def listar_disponibilidad(profesor_id: int, db: Session = Depends(get_db)):
     return (
         db.query(TeacherAvailability)

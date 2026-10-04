@@ -5,20 +5,20 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import StudentGroup, ScheduleEntry, Subject, Teacher
-from schemas import MateriaCreate, MateriaOut
+from schemas import SubjectCreate, SubjectOut
 
 router = APIRouter(prefix="/materias", tags=["Materias"])
 
 
-def validar_referencias(subject: MateriaCreate, db: Session):
+def validar_referencias(subject: SubjectCreate, db: Session):
     group = db.query(StudentGroup).filter(StudentGroup.id == subject.grupo_id).first()
     teacher = db.query(Teacher).filter(Teacher.id == subject.profesor_id).first()
     if not group or not teacher:
         raise HTTPException(status_code=404, detail="Grupo o profesor no encontrado")
 
 
-@router.post("", response_model=MateriaOut)
-def crear_materia(subject: MateriaCreate, db: Session = Depends(get_db)):
+@router.post("", response_model=SubjectOut)
+def crear_materia(subject: SubjectCreate, db: Session = Depends(get_db)):
     validar_referencias(subject, db)
     nueva = Subject(**subject.model_dump())
     db.add(nueva)
@@ -27,13 +27,13 @@ def crear_materia(subject: MateriaCreate, db: Session = Depends(get_db)):
     return nueva
 
 
-@router.get("", response_model=List[MateriaOut])
+@router.get("", response_model=List[SubjectOut])
 def listar_materias(db: Session = Depends(get_db)):
     return db.query(Subject).all()
 
 
-@router.put("/{materia_id}", response_model=MateriaOut)
-def actualizar_materia(materia_id: int, datos: MateriaCreate, db: Session = Depends(get_db)):
+@router.put("/{materia_id}", response_model=SubjectOut)
+def actualizar_materia(materia_id: int, datos: SubjectCreate, db: Session = Depends(get_db)):
     subject = db.query(Subject).filter(Subject.id == materia_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Materia no encontrada")

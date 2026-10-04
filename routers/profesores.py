@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Subject, Teacher
-from schemas import ProfesorCreate, ProfesorOut
+from schemas import TeacherCreate, TeacherOut
 
 router = APIRouter(prefix="/profesores", tags=["Profesores"])
 
@@ -18,8 +18,8 @@ def correo_en_uso(db: Session, email: str, excluir_id: int | None = None) -> boo
     return consulta.first() is not None
 
 
-@router.post("", response_model=ProfesorOut)
-def crear_profesor(teacher: ProfesorCreate, db: Session = Depends(get_db)):
+@router.post("", response_model=TeacherOut)
+def crear_profesor(teacher: TeacherCreate, db: Session = Depends(get_db)):
     if correo_en_uso(db, teacher.email):
         raise HTTPException(status_code=409, detail="Ya existe un profesor con ese correo")
 
@@ -30,13 +30,13 @@ def crear_profesor(teacher: ProfesorCreate, db: Session = Depends(get_db)):
     return nuevo
 
 
-@router.get("", response_model=List[ProfesorOut])
+@router.get("", response_model=List[TeacherOut])
 def listar_profesores(db: Session = Depends(get_db)):
     return db.query(Teacher).all()
 
 
-@router.put("/{profesor_id}", response_model=ProfesorOut)
-def actualizar_profesor(profesor_id: int, datos: ProfesorCreate, db: Session = Depends(get_db)):
+@router.put("/{profesor_id}", response_model=TeacherOut)
+def actualizar_profesor(profesor_id: int, datos: TeacherCreate, db: Session = Depends(get_db)):
     teacher = db.query(Teacher).filter(Teacher.id == profesor_id).first()
     if not teacher:
         raise HTTPException(status_code=404, detail="Profesor no encontrado")

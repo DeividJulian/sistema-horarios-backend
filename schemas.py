@@ -10,27 +10,27 @@ from pydantic import (
     model_validator,
 )
 
-Nombre = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=100)]
+Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=100)]
 
-DiaSemana = Literal["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
+Weekday = Literal["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
 
-# Rango del calendario: los bloques empiezan entre las 6:00 y las 20:00 y terminan a las 21:00 como maximo
-HORA_MIN = 6
-HORA_MAX = 21
+# Calendar range: blocks start between 6:00 and 20:00 and end at 21:00 at the latest
+MIN_HOUR = 6
+MAX_HOUR = 21
 
 
-def exigir_hora_en_punto(valor: time) -> time:
-    if valor.minute != 0 or valor.second != 0:
+def require_on_the_hour(value: time) -> time:
+    if value.minute != 0 or value.second != 0:
         raise ValueError("Las horas deben ser en punto (por ejemplo 08:00:00)")
-    return valor
+    return value
 
 
-class ProfesorCreate(BaseModel):
-    nombre: Nombre
+class TeacherCreate(BaseModel):
+    nombre: Name
     email: EmailStr
 
 
-class ProfesorOut(BaseModel):
+class TeacherOut(BaseModel):
     id: int
     nombre: str
     email: str
@@ -39,29 +39,29 @@ class ProfesorOut(BaseModel):
         from_attributes = True
 
 
-class DisponibilidadCreate(BaseModel):
+class AvailabilityCreate(BaseModel):
     profesor_id: int = Field(gt=0)
-    dia_semana: DiaSemana
+    dia_semana: Weekday
     hora_inicio: time
     hora_fin: time
 
     @field_validator("hora_inicio", "hora_fin")
     @classmethod
-    def validar_hora_en_punto(cls, valor: time) -> time:
-        return exigir_hora_en_punto(valor)
+    def validate_on_the_hour(cls, value: time) -> time:
+        return require_on_the_hour(value)
 
     @model_validator(mode="after")
-    def validar_rango(self):
+    def validate_range(self):
         if self.hora_fin <= self.hora_inicio:
             raise ValueError("hora_fin debe ser posterior a hora_inicio")
-        if self.hora_inicio.hour < HORA_MIN or self.hora_fin.hour > HORA_MAX:
+        if self.hora_inicio.hour < MIN_HOUR or self.hora_fin.hour > MAX_HOUR:
             raise ValueError(
-                f"La disponibilidad debe estar entre las {HORA_MIN}:00 y las {HORA_MAX}:00"
+                f"La disponibilidad debe estar entre las {MIN_HOUR}:00 y las {MAX_HOUR}:00"
             )
         return self
 
 
-class DisponibilidadOut(BaseModel):
+class AvailabilityOut(BaseModel):
     id: int
     profesor_id: int
     dia_semana: str
@@ -72,12 +72,12 @@ class DisponibilidadOut(BaseModel):
         from_attributes = True
 
 
-class AulaCreate(BaseModel):
-    nombre: Nombre
+class ClassroomCreate(BaseModel):
+    nombre: Name
     aforo: int = Field(ge=1, le=500)
 
 
-class AulaOut(BaseModel):
+class ClassroomOut(BaseModel):
     id: int
     nombre: str
     aforo: int
@@ -86,12 +86,12 @@ class AulaOut(BaseModel):
         from_attributes = True
 
 
-class GrupoCreate(BaseModel):
-    nombre: Nombre
+class GroupCreate(BaseModel):
+    nombre: Name
     num_estudiantes: int = Field(ge=1, le=500)
 
 
-class GrupoOut(BaseModel):
+class GroupOut(BaseModel):
     id: int
     nombre: str
     num_estudiantes: int
@@ -100,14 +100,14 @@ class GrupoOut(BaseModel):
         from_attributes = True
 
 
-class MateriaCreate(BaseModel):
-    nombre: Nombre
+class SubjectCreate(BaseModel):
+    nombre: Name
     intensidad_horaria: int = Field(ge=1, le=5)
     grupo_id: int = Field(gt=0)
     profesor_id: int = Field(gt=0)
 
 
-class MateriaOut(BaseModel):
+class SubjectOut(BaseModel):
     id: int
     nombre: str
     intensidad_horaria: int
@@ -118,7 +118,7 @@ class MateriaOut(BaseModel):
         from_attributes = True
 
 
-class HorarioOut(BaseModel):
+class ScheduleEntryOut(BaseModel):
     id: int
     materia_id: int
     aula_id: int
@@ -130,16 +130,16 @@ class HorarioOut(BaseModel):
         from_attributes = True
 
 
-class HorarioUpdate(BaseModel):
-    dia_semana: DiaSemana
+class ScheduleEntryMove(BaseModel):
+    dia_semana: Weekday
     hora_inicio: time
 
     @field_validator("hora_inicio")
     @classmethod
-    def validar_hora_inicio(cls, valor: time) -> time:
-        exigir_hora_en_punto(valor)
-        if valor.hour < HORA_MIN or valor.hour >= HORA_MAX:
+    def validate_start_time(cls, value: time) -> time:
+        require_on_the_hour(value)
+        if value.hour < MIN_HOUR or value.hour >= MAX_HOUR:
             raise ValueError(
-                f"El bloque debe iniciar entre las {HORA_MIN}:00 y las {HORA_MAX - 1}:00"
+                f"El bloque debe iniciar entre las {MIN_HOUR}:00 y las {MAX_HOUR - 1}:00"
             )
-        return valor
+        return value
