@@ -1,3 +1,5 @@
+import logging
+import time as reloj
 from datetime import time
 from typing import List
 
@@ -9,13 +11,18 @@ from models import Aula, Horario, Materia, Profesor
 from schemas import HorarioOut, HorarioUpdate
 from services.csp import calcular_asignaciones
 
+logger = logging.getLogger("horarios.generacion")
+
 router = APIRouter(tags=["Horarios"])
 
 
 @router.post("/generar-horario")
 def generar_horario(db: Session = Depends(get_db)):
+    inicio = reloj.perf_counter()
     exito, asignaciones, mensaje = calcular_asignaciones(db)
+    duracion = reloj.perf_counter() - inicio
     if not exito:
+        logger.warning("Generación fallida tras %.2f s: %s", duracion, mensaje)
         raise HTTPException(status_code=409, detail=mensaje)
 
     db.query(Horario).delete()
@@ -30,6 +37,7 @@ def generar_horario(db: Session = Depends(get_db)):
             )
         )
     db.commit()
+    logger.info("Horario generado: %d bloques en %.2f s", len(asignaciones), duracion)
     return {"mensaje": "Horario generado exitosamente", "total_bloques": len(asignaciones)}
 
 
