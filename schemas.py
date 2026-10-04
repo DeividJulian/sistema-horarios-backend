@@ -3,6 +3,7 @@ from typing import Annotated, Literal
 
 from pydantic import (
     BaseModel,
+    ConfigDict,
     EmailStr,
     Field,
     StringConstraints,
@@ -35,8 +36,7 @@ class TeacherOut(BaseModel):
     nombre: str
     email: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AvailabilityCreate(BaseModel):
@@ -68,8 +68,7 @@ class AvailabilityOut(BaseModel):
     hora_inicio: time
     hora_fin: time
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ClassroomCreate(BaseModel):
@@ -82,8 +81,7 @@ class ClassroomOut(BaseModel):
     nombre: str
     aforo: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class GroupCreate(BaseModel):
@@ -96,8 +94,7 @@ class GroupOut(BaseModel):
     nombre: str
     num_estudiantes: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SubjectCreate(BaseModel):
@@ -114,8 +111,7 @@ class SubjectOut(BaseModel):
     grupo_id: int
     profesor_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ScheduleEntryOut(BaseModel):
@@ -126,8 +122,7 @@ class ScheduleEntryOut(BaseModel):
     hora_inicio: time
     hora_fin: time
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ScheduleEntryMove(BaseModel):
