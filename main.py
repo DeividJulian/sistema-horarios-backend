@@ -16,6 +16,7 @@ from schemas import (
     MateriaCreate, MateriaOut,
     HorarioOut, HorarioUpdate,
 )
+from routers import materias
 from routers import grupos
 from routers import aulas
 from routers import profesores
@@ -37,6 +38,7 @@ app.add_middleware(
 app.include_router(profesores.router)
 app.include_router(aulas.router)
 app.include_router(grupos.router)
+app.include_router(materias.router)
 
 
 @app.get("/")
@@ -66,25 +68,6 @@ def crear_disponibilidad(disp: DisponibilidadCreate, db: Session = Depends(get_d
 @app.get("/disponibilidad/{profesor_id}", response_model=List[DisponibilidadOut])
 def listar_disponibilidad(profesor_id: int, db: Session = Depends(get_db)):
     return db.query(DisponibilidadProfesor).filter(DisponibilidadProfesor.profesor_id == profesor_id).all()
-
-
-# ---------- ENDPOINTS: MATERIAS ----------
-
-@app.post("/materias", response_model=MateriaOut)
-def crear_materia(materia: MateriaCreate, db: Session = Depends(get_db)):
-    grupo = db.query(Grupo).filter(Grupo.id == materia.grupo_id).first()
-    profesor = db.query(Profesor).filter(Profesor.id == materia.profesor_id).first()
-    if not grupo or not profesor:
-        raise HTTPException(status_code=404, detail="Grupo o profesor no encontrado")
-    nueva = Materia(**materia.dict())
-    db.add(nueva)
-    db.commit()
-    db.refresh(nueva)
-    return nueva
-
-@app.get("/materias", response_model=List[MateriaOut])
-def listar_materias(db: Session = Depends(get_db)):
-    return db.query(Materia).all()
 
 
 # ---------- ALGORITMO CSP: ASIGNACIÓN DE HORARIOS ----------
