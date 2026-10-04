@@ -4,16 +4,16 @@ from sqlalchemy.orm import relationship
 from database import Base
 
 
-class Profesor(Base):
+class Teacher(Base):
     __tablename__ = "profesores"
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
 
-    disponibilidades = relationship("DisponibilidadProfesor", back_populates="profesor", cascade="all, delete")
+    availabilities = relationship("TeacherAvailability", back_populates="teacher", cascade="all, delete")
 
 
-class DisponibilidadProfesor(Base):
+class TeacherAvailability(Base):
     __tablename__ = "disponibilidad_profesor"
     id = Column(Integer, primary_key=True, index=True)
     profesor_id = Column(Integer, ForeignKey("profesores.id"), nullable=False)
@@ -21,24 +21,24 @@ class DisponibilidadProfesor(Base):
     hora_inicio = Column(Time, nullable=False)
     hora_fin = Column(Time, nullable=False)
 
-    profesor = relationship("Profesor", back_populates="disponibilidades")
+    teacher = relationship("Teacher", back_populates="availabilities")
 
 
-class Aula(Base):
+class Classroom(Base):
     __tablename__ = "aulas"
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, nullable=False)
     aforo = Column(Integer, nullable=False)
 
 
-class Grupo(Base):
+class StudentGroup(Base):
     __tablename__ = "grupos"
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, nullable=False)
     num_estudiantes = Column(Integer, nullable=False)
 
 
-class Materia(Base):
+class Subject(Base):
     __tablename__ = "materias"
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, nullable=False)
@@ -46,11 +46,11 @@ class Materia(Base):
     grupo_id = Column(Integer, ForeignKey("grupos.id"), nullable=False)
     profesor_id = Column(Integer, ForeignKey("profesores.id"), nullable=False)
 
-    grupo = relationship("Grupo")
-    profesor = relationship("Profesor")
+    group = relationship("StudentGroup")
+    teacher = relationship("Teacher")
 
 
-class Horario(Base):
+class ScheduleEntry(Base):
     __tablename__ = "horarios"
     id = Column(Integer, primary_key=True, index=True)
     materia_id = Column(Integer, ForeignKey("materias.id"), nullable=False)
@@ -59,5 +59,5 @@ class Horario(Base):
     hora_inicio = Column(Time, nullable=False)
     hora_fin = Column(Time, nullable=False)
 
-    materia = relationship("Materia")
-    aula = relationship("Aula")
+    subject = relationship("Subject")
+    classroom = relationship("Classroom")

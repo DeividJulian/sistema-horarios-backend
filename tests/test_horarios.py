@@ -1,4 +1,4 @@
-from models import Horario
+from models import ScheduleEntry
 
 
 def test_generar_horario_con_datos_demo(client, datos_demo):
@@ -59,9 +59,9 @@ def test_mover_bloque_con_hora_invalida_da_422(client, datos_demo):
 
 def test_detecta_cruce_de_profesor(client, datos_demo, db):
     client.post("/generar-horario")
-    original = db.query(Horario).first()
+    original = db.query(ScheduleEntry).first()
     db.add(
-        Horario(
+        ScheduleEntry(
             materia_id=original.materia_id,
             aula_id=original.aula_id,
             dia_semana=original.dia_semana,
@@ -83,7 +83,7 @@ def test_sin_horario_todas_las_materias_salen_incompletas(client, datos_demo):
 
 def test_eliminar_materia_borra_sus_bloques(client, datos_demo):
     client.post("/generar-horario")
-    materia = client.get("/materias").json()[0]
+    subject = client.get("/materias").json()[0]
     antes = len(client.get("/horarios").json())
-    assert client.delete(f"/materias/{materia['id']}").status_code == 200
-    assert len(client.get("/horarios").json()) == antes - materia["intensidad_horaria"]
+    assert client.delete(f"/materias/{subject['id']}").status_code == 200
+    assert len(client.get("/horarios").json()) == antes - subject["intensidad_horaria"]

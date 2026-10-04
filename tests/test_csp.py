@@ -1,18 +1,18 @@
 from datetime import time
 
-from models import Aula, DisponibilidadProfesor, Grupo, Materia, Profesor
+from models import Classroom, TeacherAvailability, StudentGroup, Subject, Teacher
 from services import csp
 
 
 def _escenario(db, aforo_aula=40, estudiantes=30, intensidad=3):
-    aula = Aula(nombre="A1", aforo=aforo_aula)
-    grupo = Grupo(nombre="G1", num_estudiantes=estudiantes)
-    prof = Profesor(nombre="Prof", email="prof@ucc.edu.co")
-    db.add_all([aula, grupo, prof])
+    classroom = Classroom(nombre="A1", aforo=aforo_aula)
+    group = StudentGroup(nombre="G1", num_estudiantes=estudiantes)
+    prof = Teacher(nombre="Prof", email="prof@ucc.edu.co")
+    db.add_all([classroom, group, prof])
     db.flush()
     for dia in ["Lunes", "Martes", "Miércoles"]:
-        db.add(DisponibilidadProfesor(profesor_id=prof.id, dia_semana=dia, hora_inicio=time(8), hora_fin=time(10)))
-    db.add(Materia(nombre="M1", intensidad_horaria=intensidad, grupo_id=grupo.id, profesor_id=prof.id))
+        db.add(TeacherAvailability(profesor_id=prof.id, dia_semana=dia, hora_inicio=time(8), hora_fin=time(10)))
+    db.add(Subject(nombre="M1", intensidad_horaria=intensidad, grupo_id=group.id, profesor_id=prof.id))
     db.commit()
 
 

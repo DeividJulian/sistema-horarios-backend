@@ -4,15 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Grupo, Materia
+from models import StudentGroup, Subject
 from schemas import GrupoCreate, GrupoOut
 
 router = APIRouter(prefix="/grupos", tags=["Grupos"])
 
 
 @router.post("", response_model=GrupoOut)
-def crear_grupo(grupo: GrupoCreate, db: Session = Depends(get_db)):
-    nuevo = Grupo(**grupo.model_dump())
+def crear_grupo(group: GrupoCreate, db: Session = Depends(get_db)):
+    nuevo = StudentGroup(**group.model_dump())
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
@@ -21,35 +21,35 @@ def crear_grupo(grupo: GrupoCreate, db: Session = Depends(get_db)):
 
 @router.get("", response_model=List[GrupoOut])
 def listar_grupos(db: Session = Depends(get_db)):
-    return db.query(Grupo).all()
+    return db.query(StudentGroup).all()
 
 
 @router.put("/{grupo_id}", response_model=GrupoOut)
 def actualizar_grupo(grupo_id: int, datos: GrupoCreate, db: Session = Depends(get_db)):
-    grupo = db.query(Grupo).filter(Grupo.id == grupo_id).first()
-    if not grupo:
+    group = db.query(StudentGroup).filter(StudentGroup.id == grupo_id).first()
+    if not group:
         raise HTTPException(status_code=404, detail="Grupo no encontrado")
 
-    grupo.nombre = datos.nombre
-    grupo.num_estudiantes = datos.num_estudiantes
+    group.nombre = datos.nombre
+    group.num_estudiantes = datos.num_estudiantes
     db.commit()
-    db.refresh(grupo)
-    return grupo
+    db.refresh(group)
+    return group
 
 
 @router.delete("/{grupo_id}")
 def eliminar_grupo(grupo_id: int, db: Session = Depends(get_db)):
-    grupo = db.query(Grupo).filter(Grupo.id == grupo_id).first()
-    if not grupo:
+    group = db.query(StudentGroup).filter(StudentGroup.id == grupo_id).first()
+    if not group:
         raise HTTPException(status_code=404, detail="Grupo no encontrado")
 
-    tiene_materias = db.query(Materia).filter(Materia.grupo_id == grupo_id).first()
+    tiene_materias = db.query(Subject).filter(Subject.grupo_id == grupo_id).first()
     if tiene_materias:
         raise HTTPException(
             status_code=409,
             detail="No se puede eliminar: el grupo tiene materias asignadas. Elimina esas materias primero.",
         )
 
-    db.delete(grupo)
+    db.delete(group)
     db.commit()
     return {"mensaje": "Grupo eliminado"}

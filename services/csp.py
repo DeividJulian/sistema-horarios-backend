@@ -3,7 +3,7 @@ from datetime import time
 
 from sqlalchemy.orm import Session
 
-from models import Aula, DisponibilidadProfesor, Grupo, Materia
+from models import Classroom, TeacherAvailability, StudentGroup, Subject
 
 DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
 
@@ -38,23 +38,23 @@ def _orden_dia(dia: str) -> int:
 
 
 def calcular_asignaciones(db: Session):
-    materias = db.query(Materia).all()
-    aulas = db.query(Aula).all()
-    grupos = {g.id: g for g in db.query(Grupo).all()}
+    materias = db.query(Subject).all()
+    aulas = db.query(Classroom).all()
+    grupos = {g.id: g for g in db.query(StudentGroup).all()}
 
     if not materias or not aulas:
         return False, [], "No hay materias o aulas registradas."
 
     # Disponibilidad de cada profesor como conjunto de (dia, hora)
     disponibilidad_por_profesor = {}
-    for materia in materias:
-        pid = materia.profesor_id
+    for subject in materias:
+        pid = subject.profesor_id
         if pid not in disponibilidad_por_profesor:
             slots = set()
-            disponibilidades = db.query(DisponibilidadProfesor).filter(
-                DisponibilidadProfesor.profesor_id == pid
+            availabilities = db.query(TeacherAvailability).filter(
+                TeacherAvailability.profesor_id == pid
             ).all()
-            for d in disponibilidades:
+            for d in availabilities:
                 for h in generar_bloques_horarios(d.hora_inicio, d.hora_fin):
                     slots.add((d.dia_semana, h))
             disponibilidad_por_profesor[pid] = slots
@@ -90,14 +90,14 @@ def calcular_asignaciones(db: Session):
         if index == len(materias_ordenadas):
             return True
 
-        materia = materias_ordenadas[index]
-        grupo = grupos.get(materia.grupo_id)
-        if grupo is None:
+        subject = materias_ordenadas[index]
+        group = grupos.get(subject.grupo_id)
+        if group is None:
             return False
 
-        slots_profesor = disponibilidad_por_profesor.get(materia.profesor_id, set())
+        slots_profesor = disponibilidad_por_profesor.get(subject.profesor_id, set())
         aulas_validas = sorted(
-            (a for a in aulas if a.aforo >= grupo.num_estudiantes), key=lambda a: (a.aforo, a.id)
+            (a for a in aulas if a.aforo >= group.num_estudiantes), key=lambda a: (a.aforo, a.id)
         )
 
         def tiene_clase(entidad_id, ocupado, dia, h):
@@ -114,20 +114,20 @@ def calcular_asignaciones(db: Session):
 
         def clave_orden(slot):
             dia, hora = slot
-            penalizacion = costo_franja(materia.profesor_id, ocupado_profesor, dia, hora) + costo_franja(
-                materia.grupo_id, ocupado_grupo, dia, hora
+            penalizacion = costo_franja(subject.profesor_id, ocupado_profesor, dia, hora) + costo_franja(
+                subject.grupo_id, ocupado_grupo, dia, hora
             )
             return (penalizacion, _orden_dia(dia), hora)
 
         # Se prueban primero las franjas que no dejan huecos; el backtracking sigue siendo completo
         candidatos = [
-            (dia, hora, aula)
+            (dia, hora, classroom)
             for (dia, hora) in sorted(slots_profesor, key=clave_orden)
-            for aula in aulas_validas
+            for classroom in aulas_validas
         ]
 
         def asignar_bloques(pos, dias_usados, desde):
-            if pos == materia.intensidad_horaria:
+            if pos == subject.intensidad_horaria:
                 # Materia completa: seguir con la siguiente. Si falla, se prueban
                 # otras combinaciones de ESTA materia (backtracking real).
                 return asignar_materia(index + 1)
@@ -135,22 +135,22 @@ def calcular_asignaciones(db: Session):
             for i in range(desde, len(candidatos)):
                 if reloj.monotonic() > limite:
                     raise TiempoAgotado()
-                dia, hora, aula = candidatos[i]
+                dia, hora, classroom = candidatos[i]
                 if dia in dias_usados:
                     continue
-                if horas_grupo_dia.get((materia.grupo_id, dia), 0) >= MAX_HORAS_DIA_GRUPO:
+                if horas_grupo_dia.get((subject.grupo_id, dia), 0) >= MAX_HORAS_DIA_GRUPO:
                     continue
-                clave_prof = (materia.profesor_id, dia, hora)
-                clave_aula = (aula.id, dia, hora)
-                clave_grupo = (materia.grupo_id, dia, hora)
+                clave_prof = (subject.profesor_id, dia, hora)
+                clave_aula = (classroom.id, dia, hora)
+                clave_grupo = (subject.grupo_id, dia, hora)
                 if clave_prof in ocupado_profesor or clave_aula in ocupado_aula or clave_grupo in ocupado_grupo:
                     continue
 
                 ocupado_profesor.add(clave_prof)
                 ocupado_aula.add(clave_aula)
                 ocupado_grupo.add(clave_grupo)
-                horas_grupo_dia[(materia.grupo_id, dia)] = horas_grupo_dia.get((materia.grupo_id, dia), 0) + 1
-                resultado.append((materia, aula, dia, hora))
+                horas_grupo_dia[(subject.grupo_id, dia)] = horas_grupo_dia.get((subject.grupo_id, dia), 0) + 1
+                resultado.append((subject, classroom, dia, hora))
                 dias_usados.add(dia)
 
                 if asignar_bloques(pos + 1, dias_usados, i + 1):
@@ -159,7 +159,7 @@ def calcular_asignaciones(db: Session):
                 ocupado_profesor.discard(clave_prof)
                 ocupado_aula.discard(clave_aula)
                 ocupado_grupo.discard(clave_grupo)
-                horas_grupo_dia[(materia.grupo_id, dia)] -= 1
+                horas_grupo_dia[(subject.grupo_id, dia)] -= 1
                 resultado.pop()
                 dias_usados.discard(dia)
             return False

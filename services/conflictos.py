@@ -2,12 +2,12 @@ from collections import defaultdict
 
 from sqlalchemy.orm import Session
 
-from models import DisponibilidadProfesor, Horario, Materia
+from models import TeacherAvailability, ScheduleEntry, Subject
 
 
 def _franjas_disponibles(db: Session, profesor_id: int) -> set:
     franjas = set()
-    for d in db.query(DisponibilidadProfesor).filter(DisponibilidadProfesor.profesor_id == profesor_id):
+    for d in db.query(TeacherAvailability).filter(TeacherAvailability.profesor_id == profesor_id):
         for h in range(d.hora_inicio.hour, d.hora_fin.hour):
             franjas.add((d.dia_semana, h))
     return franjas
@@ -31,43 +31,43 @@ def _agrupar_cruces(horarios, clave, tipo, etiqueta):
 
 
 def detectar_conflictos(db: Session) -> list:
-    horarios = db.query(Horario).all()
+    horarios = db.query(ScheduleEntry).all()
     conflictos = []
 
     conflictos += _agrupar_cruces(
         horarios,
-        lambda h: (h.materia.profesor.nombre, h.dia_semana, h.hora_inicio.hour),
+        lambda h: (h.subject.teacher.nombre, h.dia_semana, h.hora_inicio.hour),
         "cruce_profesor",
         "El profesor",
     )
     conflictos += _agrupar_cruces(
         horarios,
-        lambda h: (h.aula.nombre, h.dia_semana, h.hora_inicio.hour),
+        lambda h: (h.classroom.nombre, h.dia_semana, h.hora_inicio.hour),
         "cruce_aula",
         "El aula",
     )
     conflictos += _agrupar_cruces(
         horarios,
-        lambda h: (h.materia.grupo.nombre, h.dia_semana, h.hora_inicio.hour),
+        lambda h: (h.subject.group.nombre, h.dia_semana, h.hora_inicio.hour),
         "cruce_grupo",
         "El grupo",
     )
 
     cache_disp = {}
     for h in horarios:
-        if h.materia.grupo.num_estudiantes > h.aula.aforo:
+        if h.subject.group.num_estudiantes > h.classroom.aforo:
             conflictos.append(
                 {
                     "tipo": "sobrecupo",
                     "descripcion": (
-                        f"{h.materia.nombre}: el grupo {h.materia.grupo.nombre} "
-                        f"({h.materia.grupo.num_estudiantes}) no cabe en {h.aula.nombre} (aforo {h.aula.aforo})"
+                        f"{h.subject.nombre}: el grupo {h.subject.group.nombre} "
+                        f"({h.subject.group.num_estudiantes}) no cabe en {h.classroom.nombre} (aforo {h.classroom.aforo})"
                     ),
                     "horario_ids": [h.id],
                 }
             )
 
-        pid = h.materia.profesor_id
+        pid = h.subject.profesor_id
         if pid not in cache_disp:
             cache_disp[pid] = _franjas_disponibles(db, pid)
         if (h.dia_semana, h.hora_inicio.hour) not in cache_disp[pid]:
@@ -75,8 +75,8 @@ def detectar_conflictos(db: Session) -> list:
                 {
                     "tipo": "fuera_de_disponibilidad",
                     "descripcion": (
-                        f"{h.materia.profesor.nombre} no está disponible el {h.dia_semana} "
-                        f"a las {h.hora_inicio.hour:02d}:00 ({h.materia.nombre})"
+                        f"{h.subject.teacher.nombre} no está disponible el {h.dia_semana} "
+                        f"a las {h.hora_inicio.hour:02d}:00 ({h.subject.nombre})"
                     ),
                     "horario_ids": [h.id],
                 }
@@ -86,14 +86,14 @@ def detectar_conflictos(db: Session) -> list:
     programados = defaultdict(list)
     for h in horarios:
         programados[h.materia_id].append(h.id)
-    for m in db.query(Materia).all():
+    for m in db.query(Subject).all():
         ids = programados.get(m.id, [])
         if len(ids) != m.intensidad_horaria:
             conflictos.append(
                 {
                     "tipo": "intensidad_incorrecta",
                     "descripcion": (
-                        f"{m.nombre} ({m.grupo.nombre}) requiere {m.intensidad_horaria} h "
+                        f"{m.nombre} ({m.group.nombre}) requiere {m.intensidad_horaria} h "
                         f"y tiene {len(ids)} programadas"
                     ),
                     "horario_ids": sorted(ids),

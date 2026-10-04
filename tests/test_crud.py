@@ -31,11 +31,11 @@ def test_aforo_fuera_de_rango_da_422(client):
 
 
 def test_actualizar_y_eliminar_aula(client):
-    aula = client.post("/aulas", json={"nombre": "Aula 1", "aforo": 30}).json()
-    r = client.put(f"/aulas/{aula['id']}", json={"nombre": "Aula 1B", "aforo": 35})
+    classroom = client.post("/aulas", json={"nombre": "Aula 1", "aforo": 30}).json()
+    r = client.put(f"/aulas/{classroom['id']}", json={"nombre": "Aula 1B", "aforo": 35})
     assert r.status_code == 200 and r.json()["aforo"] == 35
-    assert client.delete(f"/aulas/{aula['id']}").status_code == 200
-    assert client.delete(f"/aulas/{aula['id']}").status_code == 404
+    assert client.delete(f"/aulas/{classroom['id']}").status_code == 200
+    assert client.delete(f"/aulas/{classroom['id']}").status_code == 404
 
 
 def test_no_se_elimina_profesor_con_materias(client):

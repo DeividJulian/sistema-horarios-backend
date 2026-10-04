@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import DisponibilidadProfesor, Profesor
+from models import TeacherAvailability, Teacher
 from schemas import DisponibilidadCreate, DisponibilidadOut
 
 router = APIRouter(prefix="/disponibilidad", tags=["Disponibilidad"])
@@ -12,10 +12,10 @@ router = APIRouter(prefix="/disponibilidad", tags=["Disponibilidad"])
 
 @router.post("", response_model=DisponibilidadOut)
 def crear_disponibilidad(disp: DisponibilidadCreate, db: Session = Depends(get_db)):
-    profesor = db.query(Profesor).filter(Profesor.id == disp.profesor_id).first()
-    if not profesor:
+    teacher = db.query(Teacher).filter(Teacher.id == disp.profesor_id).first()
+    if not teacher:
         raise HTTPException(status_code=404, detail="Profesor no encontrado")
-    nueva = DisponibilidadProfesor(**disp.model_dump())
+    nueva = TeacherAvailability(**disp.model_dump())
     db.add(nueva)
     db.commit()
     db.refresh(nueva)
@@ -25,8 +25,8 @@ def crear_disponibilidad(disp: DisponibilidadCreate, db: Session = Depends(get_d
 @router.get("/{profesor_id}", response_model=List[DisponibilidadOut])
 def listar_disponibilidad(profesor_id: int, db: Session = Depends(get_db)):
     return (
-        db.query(DisponibilidadProfesor)
-        .filter(DisponibilidadProfesor.profesor_id == profesor_id)
+        db.query(TeacherAvailability)
+        .filter(TeacherAvailability.profesor_id == profesor_id)
         .all()
     )
 
@@ -34,8 +34,8 @@ def listar_disponibilidad(profesor_id: int, db: Session = Depends(get_db)):
 @router.delete("/{disponibilidad_id}")
 def eliminar_disponibilidad(disponibilidad_id: int, db: Session = Depends(get_db)):
     disp = (
-        db.query(DisponibilidadProfesor)
-        .filter(DisponibilidadProfesor.id == disponibilidad_id)
+        db.query(TeacherAvailability)
+        .filter(TeacherAvailability.id == disponibilidad_id)
         .first()
     )
     if not disp:

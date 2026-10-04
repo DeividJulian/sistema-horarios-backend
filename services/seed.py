@@ -2,40 +2,40 @@ from datetime import time
 
 from sqlalchemy.orm import Session
 
-from models import Aula, DisponibilidadProfesor, Grupo, Horario, Materia, Profesor
+from models import Classroom, TeacherAvailability, StudentGroup, ScheduleEntry, Subject, Teacher
 
 DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
 
 
 def hay_datos(db: Session) -> bool:
-    return any(db.query(m).first() for m in (Profesor, Aula, Grupo, Materia))
+    return any(db.query(m).first() for m in (Teacher, Classroom, StudentGroup, Subject))
 
 
 def borrar_todo(db: Session) -> None:
     # Orden: primero las tablas que dependen de otras
-    for modelo in (Horario, Materia, DisponibilidadProfesor, Grupo, Aula, Profesor):
+    for modelo in (ScheduleEntry, Subject, TeacherAvailability, StudentGroup, Classroom, Teacher):
         db.query(modelo).delete()
     db.commit()
 
 
 def cargar_datos_demo(db: Session) -> dict:
     profesores = [
-        Profesor(nombre="Carlos Mendoza", email="carlos.mendoza@ucc.edu.co"),
-        Profesor(nombre="Laura Giraldo", email="laura.giraldo@ucc.edu.co"),
-        Profesor(nombre="Andrés Ruiz", email="andres.ruiz@ucc.edu.co"),
-        Profesor(nombre="Marcela Torres", email="marcela.torres@ucc.edu.co"),
-        Profesor(nombre="Julián Parra", email="julian.parra@ucc.edu.co"),
+        Teacher(nombre="Carlos Mendoza", email="carlos.mendoza@ucc.edu.co"),
+        Teacher(nombre="Laura Giraldo", email="laura.giraldo@ucc.edu.co"),
+        Teacher(nombre="Andrés Ruiz", email="andres.ruiz@ucc.edu.co"),
+        Teacher(nombre="Marcela Torres", email="marcela.torres@ucc.edu.co"),
+        Teacher(nombre="Julián Parra", email="julian.parra@ucc.edu.co"),
     ]
     aulas = [
-        Aula(nombre="Aula 101", aforo=40),
-        Aula(nombre="Aula 102", aforo=30),
-        Aula(nombre="Laboratorio de Sistemas", aforo=35),
-        Aula(nombre="Sala B", aforo=25),
+        Classroom(nombre="Aula 101", aforo=40),
+        Classroom(nombre="Aula 102", aforo=30),
+        Classroom(nombre="Laboratorio de Sistemas", aforo=35),
+        Classroom(nombre="Sala B", aforo=25),
     ]
     grupos = [
-        Grupo(nombre="7A", num_estudiantes=30),
-        Grupo(nombre="7B", num_estudiantes=28),
-        Grupo(nombre="5A", num_estudiantes=35),
+        StudentGroup(nombre="7A", num_estudiantes=30),
+        StudentGroup(nombre="7B", num_estudiantes=28),
+        StudentGroup(nombre="5A", num_estudiantes=35),
     ]
     db.add_all(profesores + aulas + grupos)
     db.flush()  # asigna los ids sin cerrar la transacción
@@ -44,17 +44,17 @@ def cargar_datos_demo(db: Session) -> dict:
     g = {n.nombre: n.id for n in grupos}
 
     # (profesor, días, hora_inicio, hora_fin)
-    disponibilidades = [
+    availabilities = [
         (0, DIAS, 7, 13),
         (1, DIAS, 8, 14),
         (2, ["Lunes", "Martes", "Miércoles", "Jueves"], 10, 18),
         (3, DIAS, 6, 12),
         (4, ["Martes", "Miércoles", "Jueves", "Viernes"], 14, 20),
     ]
-    for idx, dias, ini, fin in disponibilidades:
+    for idx, dias, ini, fin in availabilities:
         for dia in dias:
             db.add(
-                DisponibilidadProfesor(
+                TeacherAvailability(
                     profesor_id=p[idx], dia_semana=dia, hora_inicio=time(ini), hora_fin=time(fin)
                 )
             )
@@ -68,8 +68,8 @@ def cargar_datos_demo(db: Session) -> dict:
         ("Redes de Computadores", 2, "5A", 4),
         ("Cálculo Diferencial", 2, "7A", 3),
     ]
-    for nombre, horas, grupo, prof in materias:
-        db.add(Materia(nombre=nombre, intensidad_horaria=horas, grupo_id=g[grupo], profesor_id=p[prof]))
+    for nombre, horas, group, prof in materias:
+        db.add(Subject(nombre=nombre, intensidad_horaria=horas, grupo_id=g[group], profesor_id=p[prof]))
 
     db.commit()
     return {
