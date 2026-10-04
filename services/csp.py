@@ -9,6 +9,10 @@ DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
 # Un grupo no puede tener mas de este numero de horas de clase en un mismo dia
 MAX_HORAS_DIA_GRUPO = 4
 
+# Rango de horas de inicio posibles (coincide con la validacion de schemas.py)
+HORA_MIN = 6
+HORA_MAX = 21
+
 
 def generar_bloques_horarios(hora_inicio: time, hora_fin: time):
     """Convierte un rango de disponibilidad en bloques de 1 hora."""
@@ -84,10 +88,30 @@ def calcular_asignaciones(db: Session):
         aulas_validas = sorted(
             (a for a in aulas if a.aforo >= grupo.num_estudiantes), key=lambda a: (a.aforo, a.id)
         )
-        # Orden determinista: por dia, hora y aula mas ajustada primero
+
+        def tiene_clase(entidad_id, ocupado, dia, h):
+            return 0 <= h <= 23 and (entidad_id, dia, time(hour=h)) in ocupado
+
+        def costo_franja(entidad_id, ocupado, dia, hora):
+            """0 si la clase queda pegada a otra, 1 si el dia estaba libre, 2 si abre una franja muerta."""
+            h = hora.hour
+            if tiene_clase(entidad_id, ocupado, dia, h - 1) or tiene_clase(entidad_id, ocupado, dia, h + 1):
+                return 0
+            if any(tiene_clase(entidad_id, ocupado, dia, x) for x in range(HORA_MIN, HORA_MAX)):
+                return 2
+            return 1
+
+        def clave_orden(slot):
+            dia, hora = slot
+            penalizacion = costo_franja(materia.profesor_id, ocupado_profesor, dia, hora) + costo_franja(
+                materia.grupo_id, ocupado_grupo, dia, hora
+            )
+            return (penalizacion, _orden_dia(dia), hora)
+
+        # Se prueban primero las franjas que no dejan huecos; el backtracking sigue siendo completo
         candidatos = [
             (dia, hora, aula)
-            for (dia, hora) in sorted(slots_profesor, key=lambda s: (_orden_dia(s[0]), s[1]))
+            for (dia, hora) in sorted(slots_profesor, key=clave_orden)
             for aula in aulas_validas
         ]
 
