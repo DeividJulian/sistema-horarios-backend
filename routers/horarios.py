@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Horario, Materia, Profesor
+from models import Aula, Horario, Materia, Profesor
 from schemas import HorarioOut, HorarioUpdate
 from services.csp import calcular_asignaciones
 
@@ -58,6 +58,20 @@ def horarios_por_profesor(profesor_id: int, db: Session = Depends(get_db)):
         db.query(Horario)
         .join(Materia, Horario.materia_id == Materia.id)
         .filter(Materia.profesor_id == profesor_id)
+        .order_by(Horario.dia_semana, Horario.hora_inicio)
+        .all()
+    )
+
+
+@router.get("/horarios/aula/{aula_id}", response_model=List[HorarioOut])
+def horarios_por_aula(aula_id: int, db: Session = Depends(get_db)):
+    aula = db.query(Aula).filter(Aula.id == aula_id).first()
+    if not aula:
+        raise HTTPException(status_code=404, detail="Aula no encontrada")
+
+    return (
+        db.query(Horario)
+        .filter(Horario.aula_id == aula_id)
         .order_by(Horario.dia_semana, Horario.hora_inicio)
         .all()
     )
