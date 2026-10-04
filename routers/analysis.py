@@ -9,7 +9,7 @@ router = APIRouter(tags=["Análisis"])
 
 
 @router.get("/conflictos")
-def obtener_conflictos(db: Session = Depends(get_db)):
+def get_conflicts(db: Session = Depends(get_db)):
     conflicts = detect_conflicts(db)
     return {
         "total": len(conflicts),
@@ -19,5 +19,5 @@ def obtener_conflictos(db: Session = Depends(get_db)):
 
 
 @router.get("/estadisticas")
-def obtener_estadisticas(db: Session = Depends(get_db)):
+def get_statistics(db: Session = Depends(get_db)):
     return compute_statistics(db)

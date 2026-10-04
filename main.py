@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 import models  # noqa: F401  (registra las tablas en Base)
 from database import Base, engine, get_db
-from routers import analisis, aulas, disponibilidad, grupos, horarios, materias, profesores, seed
+from routers import analysis, availability, classrooms, groups, schedules, seed, subjects, teachers
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,13 +32,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(profesores.router)
-app.include_router(disponibilidad.router)
-app.include_router(aulas.router)
-app.include_router(grupos.router)
-app.include_router(materias.router)
-app.include_router(horarios.router)
-app.include_router(analisis.router)
+app.include_router(teachers.router)
+app.include_router(availability.router)
+app.include_router(classrooms.router)
+app.include_router(groups.router)
+app.include_router(subjects.router)
+app.include_router(schedules.router)
+app.include_router(analysis.router)
 app.include_router(seed.router)
 
 
