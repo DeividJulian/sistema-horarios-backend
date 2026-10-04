@@ -1,20 +1,12 @@
-import os
 from datetime import time
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine, Column, Integer, String, Time, ForeignKey, text
-from sqlalchemy.orm import sessionmaker, relationship, Session, declarative_base
+from sqlalchemy import Column, Integer, String, Time, ForeignKey, text
+from sqlalchemy.orm import relationship, Session
 from pydantic import BaseModel
 from typing import List
 
-load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+from database import engine, Base, get_db
 
 # ---------- MODELOS DE BASE DE DATOS ----------
 
@@ -157,14 +149,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 @app.get("/")
