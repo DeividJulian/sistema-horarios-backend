@@ -1,26 +1,26 @@
 from models import ScheduleEntry
 
 
-def test_generar_horario_con_datos_demo(client, datos_demo):
+def test_generate_schedule_with_demo_data(client, demo_data):
     r = client.post("/generar-horario")
     assert r.status_code == 200
-    assert r.json()["total_bloques"] == datos_demo["horas_semanales"]
-    assert len(client.get("/horarios").json()) == datos_demo["horas_semanales"]
+    assert r.json()["total_bloques"] == demo_data["horas_semanales"]
+    assert len(client.get("/horarios").json()) == demo_data["horas_semanales"]
 
 
-def test_generar_sin_datos_da_409(client):
+def test_generate_without_data_returns_409(client):
     r = client.post("/generar-horario")
     assert r.status_code == 409
 
 
-def test_horario_generado_no_tiene_conflictos(client, datos_demo):
+def test_generated_schedule_has_no_conflicts(client, demo_data):
     client.post("/generar-horario")
     r = client.get("/conflictos").json()
     assert r["total"] == 0
     assert r["hay_conflictos"] is False
 
 
-def test_horarios_por_profesor_y_aula(client, datos_demo):
+def test_schedule_by_teacher_and_classroom(client, demo_data):
     client.post("/generar-horario")
     profesor_id = client.get("/profesores").json()[0]["id"]
     aula_id = client.get("/aulas").json()[0]["id"]
@@ -30,34 +30,34 @@ def test_horarios_por_profesor_y_aula(client, datos_demo):
     assert client.get("/horarios/aula/9999").status_code == 404
 
 
-def test_mover_bloque_a_franja_libre(client, datos_demo):
+def test_move_block_to_free_slot(client, demo_data):
     client.post("/generar-horario")
-    bloque = client.get("/horarios").json()[0]
-    r = client.put(f"/horarios/{bloque['id']}", json={"dia_semana": "Viernes", "hora_inicio": "20:00:00"})
+    block = client.get("/horarios").json()[0]
+    r = client.put(f"/horarios/{block['id']}", json={"dia_semana": "Viernes", "hora_inicio": "20:00:00"})
     assert r.status_code == 200
     assert r.json()["hora_fin"] == "21:00:00"
 
 
-def test_mover_bloque_nunca_deja_cruces(client, datos_demo):
+def test_moving_blocks_never_leaves_clashes(client, demo_data):
     client.post("/generar-horario")
-    bloques = client.get("/horarios").json()
-    for a in bloques[:6]:
-        for b in bloques[6:12]:
+    blocks = client.get("/horarios").json()
+    for a in blocks[:6]:
+        for b in blocks[6:12]:
             r = client.put(f"/horarios/{a['id']}", json={"dia_semana": b["dia_semana"], "hora_inicio": b["hora_inicio"]})
             assert r.status_code in (200, 409)
-            # Si el backend aceptó el movimiento, el horario sigue sin cruces de profesor, aula o grupo
-            tipos = {c["tipo"] for c in client.get("/conflictos").json()["conflictos"]}
-            assert not tipos & {"cruce_profesor", "cruce_aula", "cruce_grupo"}
+            # If the backend accepted the move, the schedule still has no teacher, classroom or group clashes
+            kinds = {c["tipo"] for c in client.get("/conflictos").json()["conflictos"]}
+            assert not kinds & {"cruce_profesor", "cruce_aula", "cruce_grupo"}
 
 
-def test_mover_bloque_con_hora_invalida_da_422(client, datos_demo):
+def test_move_block_with_invalid_hour_returns_422(client, demo_data):
     client.post("/generar-horario")
-    bloque = client.get("/horarios").json()[0]
-    r = client.put(f"/horarios/{bloque['id']}", json={"dia_semana": "Lunes", "hora_inicio": "03:00:00"})
+    block = client.get("/horarios").json()[0]
+    r = client.put(f"/horarios/{block['id']}", json={"dia_semana": "Lunes", "hora_inicio": "03:00:00"})
     assert r.status_code == 422
 
 
-def test_detecta_cruce_de_profesor(client, datos_demo, db):
+def test_detects_teacher_clash(client, demo_data, db):
     client.post("/generar-horario")
     original = db.query(ScheduleEntry).first()
     db.add(
@@ -70,20 +70,20 @@ def test_detecta_cruce_de_profesor(client, datos_demo, db):
         )
     )
     db.commit()
-    tipos = {c["tipo"] for c in client.get("/conflictos").json()["conflictos"]}
-    assert "cruce_profesor" in tipos
-    assert "cruce_aula" in tipos
+    kinds = {c["tipo"] for c in client.get("/conflictos").json()["conflictos"]}
+    assert "cruce_profesor" in kinds
+    assert "cruce_aula" in kinds
 
 
-def test_sin_horario_todas_las_materias_salen_incompletas(client, datos_demo):
+def test_without_schedule_every_subject_is_incomplete(client, demo_data):
     r = client.get("/conflictos").json()
-    assert r["total"] == datos_demo["materias"]
+    assert r["total"] == demo_data["materias"]
     assert {c["tipo"] for c in r["conflictos"]} == {"intensidad_incorrecta"}
 
 
-def test_eliminar_materia_borra_sus_bloques(client, datos_demo):
+def test_deleting_subject_removes_its_blocks(client, demo_data):
     client.post("/generar-horario")
     subject = client.get("/materias").json()[0]
-    antes = len(client.get("/horarios").json())
+    before = len(client.get("/horarios").json())
     assert client.delete(f"/materias/{subject['id']}").status_code == 200
-    assert len(client.get("/horarios").json()) == antes - subject["intensidad_horaria"]
+    assert len(client.get("/horarios").json()) == before - subject["intensidad_horaria"]

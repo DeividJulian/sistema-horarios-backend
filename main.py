@@ -9,7 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-import models  # noqa: F401  (registra las tablas en Base)
+import models  # noqa: F401  (registers the tables on Base)
 from database import Base, engine, get_db
 from routers import analysis, availability, classrooms, groups, schedules, seed, subjects, teachers
 
@@ -18,7 +18,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-logger = logging.getLogger("horarios.api")
+logger = logging.getLogger("schedule.api")
 
 Base.metadata.create_all(bind=engine)
 
@@ -42,33 +42,33 @@ app.include_router(analysis.router)
 app.include_router(seed.router)
 
 
-# ---------- LOGGING: cada peticion se registra con metodo, ruta, codigo y duracion ----------
+# ---------- LOGGING: every request is logged with method, path, status code and duration ----------
 
 @app.middleware("http")
-async def registrar_peticiones(request: Request, call_next):
-    inicio = time.perf_counter()
-    respuesta = await call_next(request)
-    ms = (time.perf_counter() - inicio) * 1000
-    logger.info("%s %s -> %s (%.0f ms)", request.method, request.url.path, respuesta.status_code, ms)
-    return respuesta
+async def log_requests(request: Request, call_next):
+    started = time.perf_counter()
+    response = await call_next(request)
+    ms = (time.perf_counter() - started) * 1000
+    logger.info("%s %s -> %s (%.0f ms)", request.method, request.url.path, response.status_code, ms)
+    return response
 
 
-# ---------- MANEJO DE ERRORES UNIFORME: todas las respuestas de error tienen la forma {"detail": "texto"} ----------
+# ---------- UNIFORM ERROR HANDLING: every error response has the shape {"detail": "text"} ----------
 
 @app.exception_handler(RequestValidationError)
-async def manejar_validacion(request: Request, exc: RequestValidationError):
-    mensajes = []
+async def handle_validation_error(request: Request, exc: RequestValidationError):
+    messages = []
     for error in exc.errors():
-        campo = ".".join(str(parte) for parte in error["loc"] if parte != "body")
-        mensaje = error["msg"].removeprefix("Value error, ")
-        mensajes.append(f"{campo}: {mensaje}" if campo else mensaje)
-    logger.warning("Validación fallida en %s %s: %s", request.method, request.url.path, mensajes)
-    return JSONResponse(status_code=422, content={"detail": "; ".join(mensajes)})
+        field = ".".join(str(part) for part in error["loc"] if part != "body")
+        message = error["msg"].removeprefix("Value error, ")
+        messages.append(f"{field}: {message}" if field else message)
+    logger.warning("Validation failed on %s %s: %s", request.method, request.url.path, messages)
+    return JSONResponse(status_code=422, content={"detail": "; ".join(messages)})
 
 
 @app.exception_handler(IntegrityError)
-async def manejar_integridad(request: Request, exc: IntegrityError):
-    logger.warning("Violación de integridad en %s %s", request.method, request.url.path)
+async def handle_integrity_error(request: Request, exc: IntegrityError):
+    logger.warning("Integrity violation on %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=409,
         content={"detail": "La operacion viola una restriccion de la base de datos (dato duplicado o referencia inexistente)."},
@@ -76,8 +76,8 @@ async def manejar_integridad(request: Request, exc: IntegrityError):
 
 
 @app.exception_handler(SQLAlchemyError)
-async def manejar_error_bd(request: Request, exc: SQLAlchemyError):
-    logger.error("Error de base de datos en %s %s", request.method, request.url.path, exc_info=exc)
+async def handle_database_error(request: Request, exc: SQLAlchemyError):
+    logger.error("Database error on %s %s", request.method, request.url.path, exc_info=exc)
     return JSONResponse(
         status_code=500,
         content={"detail": "Error interno de la base de datos. Intenta de nuevo."},
