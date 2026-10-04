@@ -89,3 +89,14 @@ def mover_horario(horario_id: int, cambio: HorarioUpdate, db: Session = Depends(
     db.commit()
     db.refresh(horario)
     return horario
+
+
+@router.delete("/horarios/{horario_id}")
+def eliminar_horario(horario_id: int, db: Session = Depends(get_db)):
+    horario = db.query(Horario).filter(Horario.id == horario_id).first()
+    if not horario:
+        raise HTTPException(status_code=404, detail="Horario no encontrado")
+
+    db.delete(horario)
+    db.commit()
+    return {"mensaje": "Bloque de horario eliminado"}
