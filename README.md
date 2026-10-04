@@ -4,7 +4,7 @@ API REST que genera automáticamente horarios universitarios sin cruces de profe
 
 Proyecto final de Programación Orientada a la Web — Universidad Cooperativa de Colombia.
 
-- **Frontend:** `<URL del repositorio del frontend>` (Angular, calendario con arrastrar y soltar)
+- **Frontend:** https://github.com/DeividJulian/sistema-horarios-frontend (Angular, calendario con arrastrar y soltar)
 - **API desplegada:** `<URL del backend en producción>`
 
 ## Tecnologías
