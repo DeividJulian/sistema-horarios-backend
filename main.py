@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 import models  # noqa: F401  (registra las tablas en Base)
 from database import Base, engine, get_db
-from routers import aulas, disponibilidad, grupos, horarios, materias, profesores
+from routers import analisis, aulas, disponibilidad, grupos, horarios, materias, profesores
 
 Base.metadata.create_all(bind=engine)
 
@@ -28,6 +28,7 @@ app.include_router(aulas.router)
 app.include_router(grupos.router)
 app.include_router(materias.router)
 app.include_router(horarios.router)
+app.include_router(analisis.router)
 
 
 # ---------- MANEJO DE ERRORES UNIFORME: todas las respuestas de error tienen la forma {"detail": "texto"} ----------
