@@ -43,10 +43,23 @@ def calcular_asignaciones(db: Session):
                     slots.add((d.dia_semana, h))
             disponibilidad_por_profesor[pid] = slots
 
-    # Ordenar: materias cuyo profesor tiene MENOS disponibilidad van primero (mas restringido primero)
+    # Heuristica de grado: cuantas otras materias comparten profesor o grupo con cada una.
+    # Las materias con mas "vecinas" generan mas cruces posibles, asi que se colocan antes.
+    def grado(m):
+        return sum(
+            1
+            for o in materias
+            if o.id != m.id and (o.profesor_id == m.profesor_id or o.grupo_id == m.grupo_id)
+        )
+
+    # Ordenar: primero las mas restringidas (pocas franjas por hora a ubicar) y, a igualdad, las de mayor grado
     materias_ordenadas = sorted(
         materias,
-        key=lambda m: (len(disponibilidad_por_profesor.get(m.profesor_id, set())), m.id),
+        key=lambda m: (
+            len(disponibilidad_por_profesor.get(m.profesor_id, set())) / m.intensidad_horaria,
+            -grado(m),
+            m.id,
+        ),
     )
 
     ocupado_profesor = set()
