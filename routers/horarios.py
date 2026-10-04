@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Classroom, ScheduleEntry, Subject, Teacher
 from schemas import ScheduleEntryOut, ScheduleEntryMove
-from services.csp import calcular_asignaciones
+from services.csp import compute_assignments
 
 logger = logging.getLogger("horarios.generacion")
 
@@ -19,7 +19,7 @@ router = APIRouter(tags=["Horarios"])
 @router.post("/generar-horario")
 def generar_horario(db: Session = Depends(get_db)):
     inicio = reloj.perf_counter()
-    exito, asignaciones, mensaje = calcular_asignaciones(db)
+    exito, asignaciones, mensaje = compute_assignments(db)
     duracion = reloj.perf_counter() - inicio
     if not exito:
         logger.warning("Generación fallida tras %.2f s: %s", duracion, mensaje)

@@ -1,182 +1,182 @@
-import time as reloj
+import time as clock
 from datetime import time
 
 from sqlalchemy.orm import Session
 
 from models import Classroom, TeacherAvailability, StudentGroup, Subject
 
-DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
+WEEKDAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
 
-# Un grupo no puede tener mas de este numero de horas de clase en un mismo dia
-MAX_HORAS_DIA_GRUPO = 4
+# A group cannot have more than this number of class hours on the same day
+MAX_GROUP_HOURS_PER_DAY = 4
 
-# Tiempo maximo (segundos) que el algoritmo puede buscar antes de rendirse
-TIEMPO_LIMITE_SEG = 10
+# Maximum time (seconds) the algorithm may search before giving up
+TIME_LIMIT_SECONDS = 10
 
 
-class TiempoAgotado(Exception):
+class TimeLimitExceeded(Exception):
     pass
 
 
-# Rango de horas de inicio posibles (coincide con la validacion de schemas.py)
-HORA_MIN = 6
-HORA_MAX = 21
+# Range of possible start hours (matches the validation in schemas.py)
+MIN_HOUR = 6
+MAX_HOUR = 21
 
 
-def generar_bloques_horarios(hora_inicio: time, hora_fin: time):
-    """Convierte un rango de disponibilidad en bloques de 1 hora."""
-    bloques = []
-    h = hora_inicio.hour
-    while h < hora_fin.hour:
-        bloques.append(time(hour=h))
+def split_into_hour_blocks(start: time, end: time):
+    """Turns an availability range into 1-hour blocks."""
+    blocks = []
+    h = start.hour
+    while h < end.hour:
+        blocks.append(time(hour=h))
         h += 1
-    return bloques
+    return blocks
 
 
-def _orden_dia(dia: str) -> int:
-    return DIAS.index(dia) if dia in DIAS else len(DIAS)
+def _weekday_order(day: str) -> int:
+    return WEEKDAYS.index(day) if day in WEEKDAYS else len(WEEKDAYS)
 
 
-def calcular_asignaciones(db: Session):
-    materias = db.query(Subject).all()
-    aulas = db.query(Classroom).all()
-    grupos = {g.id: g for g in db.query(StudentGroup).all()}
+def compute_assignments(db: Session):
+    subjects = db.query(Subject).all()
+    classrooms = db.query(Classroom).all()
+    groups = {g.id: g for g in db.query(StudentGroup).all()}
 
-    if not materias or not aulas:
+    if not subjects or not classrooms:
         return False, [], "No hay materias o aulas registradas."
 
-    # Disponibilidad de cada profesor como conjunto de (dia, hora)
-    disponibilidad_por_profesor = {}
-    for subject in materias:
-        pid = subject.profesor_id
-        if pid not in disponibilidad_por_profesor:
+    # Each teacher's availability as a set of (day, hour)
+    availability_by_teacher = {}
+    for subject in subjects:
+        tid = subject.profesor_id
+        if tid not in availability_by_teacher:
             slots = set()
             availabilities = db.query(TeacherAvailability).filter(
-                TeacherAvailability.profesor_id == pid
+                TeacherAvailability.profesor_id == tid
             ).all()
-            for d in availabilities:
-                for h in generar_bloques_horarios(d.hora_inicio, d.hora_fin):
-                    slots.add((d.dia_semana, h))
-            disponibilidad_por_profesor[pid] = slots
+            for a in availabilities:
+                for h in split_into_hour_blocks(a.hora_inicio, a.hora_fin):
+                    slots.add((a.dia_semana, h))
+            availability_by_teacher[tid] = slots
 
-    # Heuristica de grado: cuantas otras materias comparten profesor o grupo con cada una.
-    # Las materias con mas "vecinas" generan mas cruces posibles, asi que se colocan antes.
-    def grado(m):
+    # Degree heuristic: how many other subjects share a teacher or group with each one.
+    # Subjects with more "neighbours" can cause more clashes, so they are placed first.
+    def degree(s):
         return sum(
             1
-            for o in materias
-            if o.id != m.id and (o.profesor_id == m.profesor_id or o.grupo_id == m.grupo_id)
+            for o in subjects
+            if o.id != s.id and (o.profesor_id == s.profesor_id or o.grupo_id == s.grupo_id)
         )
 
-    # Ordenar: primero las mas restringidas (pocas franjas por hora a ubicar) y, a igualdad, las de mayor grado
-    materias_ordenadas = sorted(
-        materias,
-        key=lambda m: (
-            len(disponibilidad_por_profesor.get(m.profesor_id, set())) / m.intensidad_horaria,
-            -grado(m),
-            m.id,
+    # Order: most constrained first (few slots per hour to place) and, on ties, highest degree
+    ordered_subjects = sorted(
+        subjects,
+        key=lambda s: (
+            len(availability_by_teacher.get(s.profesor_id, set())) / s.intensidad_horaria,
+            -degree(s),
+            s.id,
         ),
     )
 
-    limite = reloj.monotonic() + TIEMPO_LIMITE_SEG
+    deadline = clock.monotonic() + TIME_LIMIT_SECONDS
 
-    ocupado_profesor = set()
-    ocupado_aula = set()
-    ocupado_grupo = set()
-    horas_grupo_dia = {}
-    resultado = []
+    busy_teacher = set()
+    busy_classroom = set()
+    busy_group = set()
+    group_hours_per_day = {}
+    result = []
 
-    def asignar_materia(index):
-        if index == len(materias_ordenadas):
+    def assign_subject(index):
+        if index == len(ordered_subjects):
             return True
 
-        subject = materias_ordenadas[index]
-        group = grupos.get(subject.grupo_id)
+        subject = ordered_subjects[index]
+        group = groups.get(subject.grupo_id)
         if group is None:
             return False
 
-        slots_profesor = disponibilidad_por_profesor.get(subject.profesor_id, set())
-        aulas_validas = sorted(
-            (a for a in aulas if a.aforo >= group.num_estudiantes), key=lambda a: (a.aforo, a.id)
+        teacher_slots = availability_by_teacher.get(subject.profesor_id, set())
+        valid_classrooms = sorted(
+            (c for c in classrooms if c.aforo >= group.num_estudiantes), key=lambda c: (c.aforo, c.id)
         )
 
-        def tiene_clase(entidad_id, ocupado, dia, h):
-            return 0 <= h <= 23 and (entidad_id, dia, time(hour=h)) in ocupado
+        def has_class(entity_id, busy, day, h):
+            return 0 <= h <= 23 and (entity_id, day, time(hour=h)) in busy
 
-        def costo_franja(entidad_id, ocupado, dia, hora):
-            """0 si la clase queda pegada a otra, 1 si el dia estaba libre, 2 si abre una franja muerta."""
-            h = hora.hour
-            if tiene_clase(entidad_id, ocupado, dia, h - 1) or tiene_clase(entidad_id, ocupado, dia, h + 1):
+        def slot_cost(entity_id, busy, day, hour):
+            """0 if the class sits next to another one, 1 if the day was free, 2 if it opens an idle gap."""
+            h = hour.hour
+            if has_class(entity_id, busy, day, h - 1) or has_class(entity_id, busy, day, h + 1):
                 return 0
-            if any(tiene_clase(entidad_id, ocupado, dia, x) for x in range(HORA_MIN, HORA_MAX)):
+            if any(has_class(entity_id, busy, day, x) for x in range(MIN_HOUR, MAX_HOUR)):
                 return 2
             return 1
 
-        def clave_orden(slot):
-            dia, hora = slot
-            penalizacion = costo_franja(subject.profesor_id, ocupado_profesor, dia, hora) + costo_franja(
-                subject.grupo_id, ocupado_grupo, dia, hora
+        def sort_key(slot):
+            day, hour = slot
+            penalty = slot_cost(subject.profesor_id, busy_teacher, day, hour) + slot_cost(
+                subject.grupo_id, busy_group, day, hour
             )
-            return (penalizacion, _orden_dia(dia), hora)
+            return (penalty, _weekday_order(day), hour)
 
-        # Se prueban primero las franjas que no dejan huecos; el backtracking sigue siendo completo
-        candidatos = [
-            (dia, hora, classroom)
-            for (dia, hora) in sorted(slots_profesor, key=clave_orden)
-            for classroom in aulas_validas
+        # Slots that leave no gaps are tried first; the backtracking is still complete
+        candidates = [
+            (day, hour, classroom)
+            for (day, hour) in sorted(teacher_slots, key=sort_key)
+            for classroom in valid_classrooms
         ]
 
-        def asignar_bloques(pos, dias_usados, desde):
+        def assign_blocks(pos, used_days, start_at):
             if pos == subject.intensidad_horaria:
-                # Materia completa: seguir con la siguiente. Si falla, se prueban
-                # otras combinaciones de ESTA materia (backtracking real).
-                return asignar_materia(index + 1)
+                # Subject complete: move on to the next one. If that fails, other
+                # combinations of THIS subject are tried (real backtracking).
+                return assign_subject(index + 1)
 
-            for i in range(desde, len(candidatos)):
-                if reloj.monotonic() > limite:
-                    raise TiempoAgotado()
-                dia, hora, classroom = candidatos[i]
-                if dia in dias_usados:
+            for i in range(start_at, len(candidates)):
+                if clock.monotonic() > deadline:
+                    raise TimeLimitExceeded()
+                day, hour, classroom = candidates[i]
+                if day in used_days:
                     continue
-                if horas_grupo_dia.get((subject.grupo_id, dia), 0) >= MAX_HORAS_DIA_GRUPO:
+                if group_hours_per_day.get((subject.grupo_id, day), 0) >= MAX_GROUP_HOURS_PER_DAY:
                     continue
-                clave_prof = (subject.profesor_id, dia, hora)
-                clave_aula = (classroom.id, dia, hora)
-                clave_grupo = (subject.grupo_id, dia, hora)
-                if clave_prof in ocupado_profesor or clave_aula in ocupado_aula or clave_grupo in ocupado_grupo:
+                teacher_key = (subject.profesor_id, day, hour)
+                classroom_key = (classroom.id, day, hour)
+                group_key = (subject.grupo_id, day, hour)
+                if teacher_key in busy_teacher or classroom_key in busy_classroom or group_key in busy_group:
                     continue
 
-                ocupado_profesor.add(clave_prof)
-                ocupado_aula.add(clave_aula)
-                ocupado_grupo.add(clave_grupo)
-                horas_grupo_dia[(subject.grupo_id, dia)] = horas_grupo_dia.get((subject.grupo_id, dia), 0) + 1
-                resultado.append((subject, classroom, dia, hora))
-                dias_usados.add(dia)
+                busy_teacher.add(teacher_key)
+                busy_classroom.add(classroom_key)
+                busy_group.add(group_key)
+                group_hours_per_day[(subject.grupo_id, day)] = group_hours_per_day.get((subject.grupo_id, day), 0) + 1
+                result.append((subject, classroom, day, hour))
+                used_days.add(day)
 
-                if asignar_bloques(pos + 1, dias_usados, i + 1):
+                if assign_blocks(pos + 1, used_days, i + 1):
                     return True
 
-                ocupado_profesor.discard(clave_prof)
-                ocupado_aula.discard(clave_aula)
-                ocupado_grupo.discard(clave_grupo)
-                horas_grupo_dia[(subject.grupo_id, dia)] -= 1
-                resultado.pop()
-                dias_usados.discard(dia)
+                busy_teacher.discard(teacher_key)
+                busy_classroom.discard(classroom_key)
+                busy_group.discard(group_key)
+                group_hours_per_day[(subject.grupo_id, day)] -= 1
+                result.pop()
+                used_days.discard(day)
             return False
 
-        return asignar_bloques(0, set(), 0)
+        return assign_blocks(0, set(), 0)
 
     try:
-        exito = asignar_materia(0)
-    except TiempoAgotado:
+        success = assign_subject(0)
+    except TimeLimitExceeded:
         return (
             False,
             [],
-            f"El algoritmo superó el límite de {TIEMPO_LIMITE_SEG} s sin encontrar solución. "
+            f"El algoritmo superó el límite de {TIME_LIMIT_SECONDS} s sin encontrar solución. "
             "Probablemente no existe un horario válido: revisa disponibilidades, aulas y horas por materia.",
         )
 
-    if not exito:
+    if not success:
         return False, [], "No fue posible generar un horario sin cruces con los datos actuales. Revisa disponibilidad de profesores o número de aulas disponibles."
 
-    return True, list(resultado), "OK"
+    return True, list(result), "OK"

@@ -18,7 +18,7 @@ def _escenario(db, aforo_aula=40, estudiantes=30, intensidad=3):
 
 def test_asigna_dias_distintos_a_una_materia(db):
     _escenario(db)
-    exito, asignaciones, _ = csp.calcular_asignaciones(db)
+    exito, asignaciones, _ = csp.compute_assignments(db)
     assert exito
     dias = [dia for _, _, dia, _ in asignaciones]
     assert len(dias) == len(set(dias)) == 3
@@ -26,27 +26,27 @@ def test_asigna_dias_distintos_a_una_materia(db):
 
 def test_falla_si_el_aula_no_tiene_aforo(db):
     _escenario(db, aforo_aula=10, estudiantes=30)
-    exito, asignaciones, mensaje = csp.calcular_asignaciones(db)
+    exito, asignaciones, mensaje = csp.compute_assignments(db)
     assert not exito and asignaciones == []
     assert "No fue posible" in mensaje
 
 
 def test_falla_si_faltan_dias_disponibles(db):
     _escenario(db, intensidad=5)  # el profesor solo tiene 3 días
-    exito, _, _ = csp.calcular_asignaciones(db)
+    exito, _, _ = csp.compute_assignments(db)
     assert not exito
 
 
 def test_limite_de_tiempo_devuelve_mensaje(db, monkeypatch):
     _escenario(db)
-    monkeypatch.setattr(csp, "TIEMPO_LIMITE_SEG", 0)
-    exito, _, mensaje = csp.calcular_asignaciones(db)
+    monkeypatch.setattr(csp, "TIME_LIMIT_SECONDS", 0)
+    exito, _, mensaje = csp.compute_assignments(db)
     assert not exito
     assert "límite" in mensaje
 
 
 def test_respeta_maximo_de_horas_diarias_por_grupo(db, monkeypatch):
     _escenario(db)
-    monkeypatch.setattr(csp, "MAX_HORAS_DIA_GRUPO", 0)
-    exito, _, _ = csp.calcular_asignaciones(db)
+    monkeypatch.setattr(csp, "MAX_GROUP_HOURS_PER_DAY", 0)
+    exito, _, _ = csp.compute_assignments(db)
     assert not exito
