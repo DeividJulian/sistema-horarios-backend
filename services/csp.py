@@ -1,3 +1,4 @@
+import time as reloj
 from datetime import time
 
 from sqlalchemy.orm import Session
@@ -8,6 +9,14 @@ DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
 
 # Un grupo no puede tener mas de este numero de horas de clase en un mismo dia
 MAX_HORAS_DIA_GRUPO = 4
+
+# Tiempo maximo (segundos) que el algoritmo puede buscar antes de rendirse
+TIEMPO_LIMITE_SEG = 10
+
+
+class TiempoAgotado(Exception):
+    pass
+
 
 # Rango de horas de inicio posibles (coincide con la validacion de schemas.py)
 HORA_MIN = 6
@@ -69,6 +78,8 @@ def calcular_asignaciones(db: Session):
         ),
     )
 
+    limite = reloj.monotonic() + TIEMPO_LIMITE_SEG
+
     ocupado_profesor = set()
     ocupado_aula = set()
     ocupado_grupo = set()
@@ -122,6 +133,8 @@ def calcular_asignaciones(db: Session):
                 return asignar_materia(index + 1)
 
             for i in range(desde, len(candidatos)):
+                if reloj.monotonic() > limite:
+                    raise TiempoAgotado()
                 dia, hora, aula = candidatos[i]
                 if dia in dias_usados:
                     continue
@@ -153,7 +166,17 @@ def calcular_asignaciones(db: Session):
 
         return asignar_bloques(0, set(), 0)
 
-    if not asignar_materia(0):
+    try:
+        exito = asignar_materia(0)
+    except TiempoAgotado:
+        return (
+            False,
+            [],
+            f"El algoritmo superó el límite de {TIEMPO_LIMITE_SEG} s sin encontrar solución. "
+            "Probablemente no existe un horario válido: revisa disponibilidades, aulas y horas por materia.",
+        )
+
+    if not exito:
         return False, [], "No fue posible generar un horario sin cruces con los datos actuales. Revisa disponibilidad de profesores o número de aulas disponibles."
 
     return True, list(resultado), "OK"
