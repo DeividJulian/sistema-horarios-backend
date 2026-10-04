@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 
 from models import Aula, DisponibilidadProfesor, Grupo, Materia
 
+DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
+
 
 def generar_bloques_horarios(hora_inicio: time, hora_fin: time):
     """Convierte un rango de disponibilidad en bloques de 1 hora."""
@@ -13,6 +15,10 @@ def generar_bloques_horarios(hora_inicio: time, hora_fin: time):
         bloques.append(time(hour=h))
         h += 1
     return bloques
+
+
+def _orden_dia(dia: str) -> int:
+    return DIAS.index(dia) if dia in DIAS else len(DIAS)
 
 
 def calcular_asignaciones(db: Session):
@@ -37,18 +43,18 @@ def calcular_asignaciones(db: Session):
                     slots.add((d.dia_semana, h))
             disponibilidad_por_profesor[pid] = slots
 
-    # Ordenar: materias cuyo profesor tiene MENOS disponibilidad van primero (más restringido primero)
+    # Ordenar: materias cuyo profesor tiene MENOS disponibilidad van primero (mas restringido primero)
     materias_ordenadas = sorted(
         materias,
-        key=lambda m: len(disponibilidad_por_profesor.get(m.profesor_id, set()))
+        key=lambda m: (len(disponibilidad_por_profesor.get(m.profesor_id, set())), m.id),
     )
 
     ocupado_profesor = set()
     ocupado_aula = set()
     ocupado_grupo = set()
-    resultado_final = []
+    resultado = []
 
-    def backtrack(index):
+    def asignar_materia(index):
         if index == len(materias_ordenadas):
             return True
 
@@ -58,16 +64,24 @@ def calcular_asignaciones(db: Session):
             return False
 
         slots_profesor = disponibilidad_por_profesor.get(materia.profesor_id, set())
-        aulas_validas = [a for a in aulas if a.aforo >= grupo.num_estudiantes]
+        aulas_validas = sorted(
+            (a for a in aulas if a.aforo >= grupo.num_estudiantes), key=lambda a: (a.aforo, a.id)
+        )
+        # Orden determinista: por dia, hora y aula mas ajustada primero
+        candidatos = [
+            (dia, hora, aula)
+            for (dia, hora) in sorted(slots_profesor, key=lambda s: (_orden_dia(s[0]), s[1]))
+            for aula in aulas_validas
+        ]
 
-        candidatos = [(dia, hora, aula) for (dia, hora) in slots_profesor for aula in aulas_validas]
-
-        asignaciones_materia = []
-
-        def backtrack_bloques(pos, dias_usados):
+        def asignar_bloques(pos, dias_usados, desde):
             if pos == materia.intensidad_horaria:
-                return True
-            for (dia, hora, aula) in candidatos:
+                # Materia completa: seguir con la siguiente. Si falla, se prueban
+                # otras combinaciones de ESTA materia (backtracking real).
+                return asignar_materia(index + 1)
+
+            for i in range(desde, len(candidatos)):
+                dia, hora, aula = candidatos[i]
                 if dia in dias_usados:
                     continue
                 clave_prof = (materia.profesor_id, dia, hora)
@@ -79,38 +93,22 @@ def calcular_asignaciones(db: Session):
                 ocupado_profesor.add(clave_prof)
                 ocupado_aula.add(clave_aula)
                 ocupado_grupo.add(clave_grupo)
-                asignaciones_materia.append((materia, aula, dia, hora))
+                resultado.append((materia, aula, dia, hora))
                 dias_usados.add(dia)
 
-                if backtrack_bloques(pos + 1, dias_usados):
+                if asignar_bloques(pos + 1, dias_usados, i + 1):
                     return True
 
                 ocupado_profesor.discard(clave_prof)
                 ocupado_aula.discard(clave_aula)
                 ocupado_grupo.discard(clave_grupo)
-                asignaciones_materia.pop()
+                resultado.pop()
                 dias_usados.discard(dia)
             return False
 
-        if not backtrack_bloques(0, set()):
-            return False
+        return asignar_bloques(0, set(), 0)
 
-        resultado_final.extend(asignaciones_materia)
-
-        if backtrack(index + 1):
-            return True
-
-        # Deshacer si una materia posterior no tiene solución
-        for (m, aula, dia, hora) in asignaciones_materia:
-            ocupado_profesor.discard((m.profesor_id, dia, hora))
-            ocupado_aula.discard((aula.id, dia, hora))
-            ocupado_grupo.discard((m.grupo_id, dia, hora))
-            resultado_final.remove((m, aula, dia, hora))
-        return False
-
-    exito = backtrack(0)
-
-    if not exito:
+    if not asignar_materia(0):
         return False, [], "No fue posible generar un horario sin cruces con los datos actuales. Revisa disponibilidad de profesores o número de aulas disponibles."
 
-    return True, resultado_final, "OK"
+    return True, list(resultado), "OK"
