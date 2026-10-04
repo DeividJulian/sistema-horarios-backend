@@ -16,6 +16,7 @@ from schemas import (
     MateriaCreate, MateriaOut,
     HorarioOut, HorarioUpdate,
 )
+from routers import aulas
 from routers import profesores
 
 Base.metadata.create_all(bind=engine)
@@ -33,6 +34,7 @@ app.add_middleware(
 )
 
 app.include_router(profesores.router)
+app.include_router(aulas.router)
 
 
 @app.get("/")
@@ -62,21 +64,6 @@ def crear_disponibilidad(disp: DisponibilidadCreate, db: Session = Depends(get_d
 @app.get("/disponibilidad/{profesor_id}", response_model=List[DisponibilidadOut])
 def listar_disponibilidad(profesor_id: int, db: Session = Depends(get_db)):
     return db.query(DisponibilidadProfesor).filter(DisponibilidadProfesor.profesor_id == profesor_id).all()
-
-
-# ---------- ENDPOINTS: AULAS ----------
-
-@app.post("/aulas", response_model=AulaOut)
-def crear_aula(aula: AulaCreate, db: Session = Depends(get_db)):
-    nueva = Aula(**aula.dict())
-    db.add(nueva)
-    db.commit()
-    db.refresh(nueva)
-    return nueva
-
-@app.get("/aulas", response_model=List[AulaOut])
-def listar_aulas(db: Session = Depends(get_db)):
-    return db.query(Aula).all()
 
 
 # ---------- ENDPOINTS: GRUPOS ----------
