@@ -22,6 +22,10 @@ MAX_HOUR = 22
 # Shift of a group (values are part of the API contract, in Spanish)
 Shift = Literal["todo", "manana", "tarde", "noche"]
 
+# Room types (API contract, in Spanish)
+RoomType = Literal["general", "informatica", "laboratorio"]
+RequiredRoomType = Literal["cualquiera", "informatica", "laboratorio"]
+
 
 def require_on_the_hour(value: time) -> time:
     if value.minute != 0 or value.second != 0:
@@ -77,12 +81,14 @@ class AvailabilityOut(BaseModel):
 class ClassroomCreate(BaseModel):
     nombre: Name
     aforo: int = Field(ge=1, le=500)
+    tipo: RoomType = "general"
 
 
 class ClassroomOut(BaseModel):
     id: int
     nombre: str
     aforo: int
+    tipo: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -107,6 +113,7 @@ class SubjectCreate(BaseModel):
     intensidad_horaria: int = Field(ge=1, le=5)
     grupo_id: int = Field(gt=0)
     profesor_id: int = Field(gt=0)
+    tipo_aula: RequiredRoomType = "cualquiera"
 
 
 class SubjectOut(BaseModel):
@@ -115,6 +122,7 @@ class SubjectOut(BaseModel):
     intensidad_horaria: int
     grupo_id: int
     profesor_id: int
+    tipo_aula: str
 
     model_config = ConfigDict(from_attributes=True)
 

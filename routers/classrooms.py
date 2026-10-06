@@ -46,6 +46,7 @@ def update_classroom(classroom_id: int, data: ClassroomCreate, db: Session = Dep
 
     classroom.nombre = data.nombre
     classroom.aforo = data.aforo
+    classroom.tipo = data.tipo
     db.commit()
     db.refresh(classroom)
     return classroom

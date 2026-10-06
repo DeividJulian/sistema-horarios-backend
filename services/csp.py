@@ -41,6 +41,16 @@ def shift_range(shift: str) -> tuple[int, int]:
     return SHIFTS.get(shift, SHIFTS["todo"])
 
 
+# How the user reads the room type a subject needs
+ROOM_TYPE_LABELS = {"cualquiera": "un aula", "informatica": "una sala de informática", "laboratorio": "un laboratorio"}
+
+
+def classroom_fits(classroom, subject, students: int) -> bool:
+    """A classroom fits a subject when it is big enough and of the required type (if any)."""
+    required = subject.tipo_aula or "cualquiera"
+    return classroom.aforo >= students and (required == "cualquiera" or classroom.tipo == required)
+
+
 def split_into_hour_blocks(start: time, end: time):
     """Turns an availability range into 1-hour blocks."""
     blocks = []
@@ -55,12 +65,22 @@ def _weekday_order(day: str) -> int:
     return WEEKDAYS.index(day) if day in WEEKDAYS else len(WEEKDAYS)
 
 
-def _availability_shortage(subjects, usable_slots):
+def _availability_shortage(subjects, usable_slots, classrooms):
     """
     Cheap checks before searching, so the user learns exactly what is missing. Returns a message or None.
-    1. Each subject needs enough of its teacher's availability inside its group's shift.
-    2. Each teacher needs enough hours for ALL their subjects together.
+    1. Each subject needs at least one classroom of the right type and size.
+    2. Each subject needs enough of its teacher's availability inside its group's shift.
+    3. Each teacher needs enough hours for ALL their subjects together.
     """
+    for s in subjects:
+        students = s.group.num_estudiantes
+        if not any(classroom_fits(c, s, students) for c in classrooms):
+            needs = ROOM_TYPE_LABELS.get(s.tipo_aula, s.tipo_aula)
+            return (
+                f"Ninguna aula sirve para '{s.nombre}' ({s.group.nombre}): necesita {needs} con aforo para {students} "
+                "estudiantes. Agrega un aula así o cambia el tipo de aula de la materia."
+            )
+
     for s in subjects:
         available = len(usable_slots(s))
         if available < s.intensidad_horaria:
@@ -115,7 +135,7 @@ def compute_assignments(db: Session):
         start, end = shift_range(group.jornada if group else "todo")
         return {(d, h) for (d, h) in availability_by_teacher.get(subject.profesor_id, set()) if start <= h.hour < end}
 
-    shortage = _availability_shortage(subjects, usable_slots)
+    shortage = _availability_shortage(subjects, usable_slots, classrooms)
     if shortage:
         return False, [], shortage
 
@@ -157,7 +177,7 @@ def compute_assignments(db: Session):
 
         teacher_slots = usable_slots(subject)
         valid_classrooms = sorted(
-            (c for c in classrooms if c.aforo >= group.num_estudiantes), key=lambda c: (c.aforo, c.id)
+            (c for c in classrooms if classroom_fits(c, subject, group.num_estudiantes)), key=lambda c: (c.aforo, c.id)
         )
 
         def has_class(entity_id, busy, day, h):

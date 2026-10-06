@@ -28,7 +28,7 @@ def test_fails_if_classroom_is_too_small(db):
     _scenario(db, classroom_capacity=10, students=30)
     success, assignments, message = csp.compute_assignments(db)
     assert not success and assignments == []
-    assert "No fue posible" in message
+    assert "Ninguna aula sirve" in message and "aforo para 30 estudiantes" in message
 
 
 def test_fails_if_not_enough_available_hours_and_explains_why(db):

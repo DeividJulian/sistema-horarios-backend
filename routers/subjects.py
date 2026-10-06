@@ -44,6 +44,7 @@ def update_subject(subject_id: int, data: SubjectCreate, db: Session = Depends(g
     subject.intensidad_horaria = data.intensidad_horaria
     subject.grupo_id = data.grupo_id
     subject.profesor_id = data.profesor_id
+    subject.tipo_aula = data.tipo_aula
     db.commit()
     db.refresh(subject)
     return subject

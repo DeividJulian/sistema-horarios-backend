@@ -29,6 +29,8 @@ class Classroom(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, nullable=False)
     aforo = Column(Integer, nullable=False)
+    # Room type: "general", "informatica" (computer room) or "laboratorio"
+    tipo = Column(String, nullable=False, default="general", server_default="general")
 
 
 class StudentGroup(Base):
@@ -47,6 +49,8 @@ class Subject(Base):
     intensidad_horaria = Column(Integer, nullable=False)
     grupo_id = Column(Integer, ForeignKey("grupos.id"), nullable=False)
     profesor_id = Column(Integer, ForeignKey("profesores.id"), nullable=False)
+    # Room type the subject needs: "cualquiera" (any), "informatica" or "laboratorio"
+    tipo_aula = Column(String, nullable=False, default="cualquiera", server_default="cualquiera")
 
     group = relationship("StudentGroup")
     teacher = relationship("Teacher")

@@ -12,10 +12,20 @@ from sqlalchemy.engine import Engine
 
 logger = logging.getLogger("schedule.migrations")
 
+# (table, column, SQL type and default). Defaults keep the old rows valid.
+NEW_COLUMNS = [
+    ("grupos", "jornada", "VARCHAR NOT NULL DEFAULT 'todo'"),
+    ("aulas", "tipo", "VARCHAR NOT NULL DEFAULT 'general'"),
+    ("materias", "tipo_aula", "VARCHAR NOT NULL DEFAULT 'cualquiera'"),
+]
+
 
 def apply_migrations(engine: Engine) -> None:
-    columns = {c["name"] for c in inspect(engine).get_columns("grupos")}
-    if "jornada" not in columns:
+    inspector = inspect(engine)
+    for table, column, definition in NEW_COLUMNS:
+        existing = {c["name"] for c in inspector.get_columns(table)}
+        if column in existing:
+            continue
         with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE grupos ADD COLUMN jornada VARCHAR NOT NULL DEFAULT 'todo'"))
-        logger.info("Added column grupos.jornada (default 'todo')")
+            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {definition}"))
+        logger.info("Added column %s.%s", table, column)

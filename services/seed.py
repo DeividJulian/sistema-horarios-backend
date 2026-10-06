@@ -85,16 +85,27 @@ def load_demo_data(db: Session) -> dict:
 # ---------------------------------------------------------------------------
 # Faculty data: 8 semesters of Software Engineering, each group with its shift
 # ---------------------------------------------------------------------------
+# (name, capacity, room type)
 FACULTY_CLASSROOMS = [
-    ("Sala de informática 2", 40),
-    ("Sala de informática 6", 40),
-    ("Aula 504B", 45),
-    ("Aula 301", 42),
-    ("Aula 302", 42),
-    ("Aula 303", 42),
-    ("Aula 401", 42),
-    ("Laboratorio de Física", 40),
+    ("Sala de informática 2", 40, "informatica"),
+    ("Sala de informática 6", 40, "informatica"),
+    ("Aula 504B", 45, "general"),
+    ("Aula 301", 42, "general"),
+    ("Aula 302", 42, "general"),
+    ("Aula 303", 42, "general"),
+    ("Aula 401", 42, "general"),
+    ("Laboratorio de Física", 40, "laboratorio"),
 ]
+
+# Subjects that need a special room; the rest can use any classroom
+FACULTY_ROOM_NEEDS = {
+    "informatica": {
+        "Fundamentos de Programación", "Programación Orientada a Objetos", "Estructuras de Datos",
+        "Bases de Datos I", "Bases de Datos II", "Desarrollo Web", "Desarrollo Móvil",
+        "Programación Orientada a la Web", "Inteligencia de Negocios y Minería de Datos",
+    },
+    "laboratorio": {"Física Mecánica", "Física Electromagnética"},
+}
 
 # key -> (name, email). Fictitious names: replace them with the real ones if you want.
 FACULTY_TEACHERS = {
@@ -159,7 +170,7 @@ SEMESTERS = [
 
 def load_faculty_data(db: Session) -> dict:
     """Loads the 8 semesters. Each teacher is available during the shifts of the groups they teach."""
-    classrooms = [Classroom(nombre=n, aforo=c) for n, c in FACULTY_CLASSROOMS]
+    classrooms = [Classroom(nombre=n, aforo=c, tipo=t) for n, c, t in FACULTY_CLASSROOMS]
     teachers = {k: Teacher(nombre=n, email=e) for k, (n, e) in FACULTY_TEACHERS.items()}
     groups = [StudentGroup(nombre=n, num_estudiantes=st, jornada=sh) for n, sh, st, _ in SEMESTERS]
     db.add_all(classrooms + list(teachers.values()) + groups)
@@ -169,7 +180,12 @@ def load_faculty_data(db: Session) -> dict:
     total_subjects = total_hours = 0
     for group, (_, shift, _, subjects) in zip(groups, SEMESTERS):
         for name, hours, key in subjects:
-            db.add(Subject(nombre=name, intensidad_horaria=hours, grupo_id=group.id, profesor_id=teachers[key].id))
+            room = next((t for t, names in FACULTY_ROOM_NEEDS.items() if name in names), "cualquiera")
+            db.add(
+                Subject(
+                    nombre=name, intensidad_horaria=hours, grupo_id=group.id, profesor_id=teachers[key].id, tipo_aula=room
+                )
+            )
             shifts_of[key].add(shift)
             total_subjects += 1
             total_hours += hours

@@ -3,7 +3,7 @@ from collections import defaultdict
 from sqlalchemy.orm import Session
 
 from models import TeacherAvailability, ScheduleEntry, Subject
-from services.csp import SHIFT_LABELS, shift_range
+from services.csp import ROOM_TYPE_LABELS, SHIFT_LABELS, shift_range
 
 
 def _available_slots(db: Session, teacher_id: int) -> set:
@@ -78,6 +78,20 @@ def detect_conflicts(db: Session) -> list:
                     "descripcion": (
                         f"{e.subject.teacher.nombre} no está disponible el {e.dia_semana} "
                         f"a las {e.hora_inicio.hour:02d}:00 ({e.subject.nombre})"
+                    ),
+                    "horario_ids": [e.id],
+                }
+            )
+
+    for e in entries:
+        required = e.subject.tipo_aula or "cualquiera"
+        if required != "cualquiera" and e.classroom.tipo != required:
+            conflicts.append(
+                {
+                    "tipo": "tipo_de_aula",
+                    "descripcion": (
+                        f"{e.subject.nombre} necesita {ROOM_TYPE_LABELS.get(required, required)} y está en "
+                        f"{e.classroom.nombre} el {e.dia_semana} a las {e.hora_inicio.hour:02d}:00"
                     ),
                     "horario_ids": [e.id],
                 }
