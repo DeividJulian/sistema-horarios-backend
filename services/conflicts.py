@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from models import TeacherAvailability, ScheduleEntry, Subject
 from services.csp import ROOM_TYPE_LABELS, SHIFT_LABELS, shift_range
+from time_format import format_hour, format_range
 
 
 def _available_slots(db: Session, teacher_id: int) -> set:
@@ -24,7 +25,7 @@ def _group_clashes(entries, key, kind, label):
             conflicts.append(
                 {
                     "tipo": kind,
-                    "descripcion": f"{label} {entity} tiene {len(blocks)} clases el {day} a las {hour:02d}:00",
+                    "descripcion": f"{label} {entity} tiene {len(blocks)} clases el {day} a las {format_hour(hour)}",
                     "horario_ids": sorted(b.id for b in blocks),
                 }
             )
@@ -77,7 +78,7 @@ def detect_conflicts(db: Session) -> list:
                     "tipo": "fuera_de_disponibilidad",
                     "descripcion": (
                         f"{e.subject.teacher.nombre} no está disponible el {e.dia_semana} "
-                        f"a las {e.hora_inicio.hour:02d}:00 ({e.subject.nombre})"
+                        f"a las {format_hour(e.hora_inicio.hour)} ({e.subject.nombre})"
                     ),
                     "horario_ids": [e.id],
                 }
@@ -91,7 +92,7 @@ def detect_conflicts(db: Session) -> list:
                     "tipo": "tipo_de_aula",
                     "descripcion": (
                         f"{e.subject.nombre} necesita {ROOM_TYPE_LABELS.get(required, required)} y está en "
-                        f"{e.classroom.nombre} el {e.dia_semana} a las {e.hora_inicio.hour:02d}:00"
+                        f"{e.classroom.nombre} el {e.dia_semana} a las {format_hour(e.hora_inicio.hour)}"
                     ),
                     "horario_ids": [e.id],
                 }
@@ -106,7 +107,7 @@ def detect_conflicts(db: Session) -> list:
                     "tipo": "fuera_de_jornada",
                     "descripcion": (
                         f"{e.subject.nombre}: el grupo {group.nombre} estudia en {SHIFT_LABELS.get(group.jornada, group.jornada)} "
-                        f"({start}:00 a {end}:00) y tiene clase el {e.dia_semana} a las {e.hora_inicio.hour:02d}:00"
+                        f"({format_range(start, end)}) y tiene clase el {e.dia_semana} a las {format_hour(e.hora_inicio.hour)}"
                     ),
                     "horario_ids": [e.id],
                 }

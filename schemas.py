@@ -11,6 +11,8 @@ from pydantic import (
     model_validator,
 )
 
+from time_format import format_hour
+
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=100)]
 
 Weekday = Literal["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
@@ -29,7 +31,7 @@ RequiredRoomType = Literal["cualquiera", "informatica", "laboratorio"]
 
 def require_on_the_hour(value: time) -> time:
     if value.minute != 0 or value.second != 0:
-        raise ValueError("Las horas deben ser en punto (por ejemplo 08:00:00)")
+        raise ValueError("Las horas deben ser en punto, sin minutos (por ejemplo 8:00 a. m.)")
     return value
 
 
@@ -63,7 +65,7 @@ class AvailabilityCreate(BaseModel):
             raise ValueError("hora_fin debe ser posterior a hora_inicio")
         if self.hora_inicio.hour < MIN_HOUR or self.hora_fin.hour > MAX_HOUR:
             raise ValueError(
-                f"La disponibilidad debe estar entre las {MIN_HOUR}:00 y las {MAX_HOUR}:00"
+                f"La disponibilidad debe estar entre las {format_hour(MIN_HOUR)} y las {format_hour(MAX_HOUR)}"
             )
         return self
 
@@ -148,6 +150,6 @@ class ScheduleEntryMove(BaseModel):
         require_on_the_hour(value)
         if value.hour < MIN_HOUR or value.hour >= MAX_HOUR:
             raise ValueError(
-                f"El bloque debe iniciar entre las {MIN_HOUR}:00 y las {MAX_HOUR - 1}:00"
+                f"El bloque debe iniciar entre las {format_hour(MIN_HOUR)} y las {format_hour(MAX_HOUR - 1)}"
             )
         return value
