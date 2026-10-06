@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from services.conflicts import detect_conflicts
+from services.readiness import check_readiness
 from services.stats import compute_statistics
 
 router = APIRouter(tags=["Análisis"])
@@ -21,3 +22,9 @@ def get_conflicts(db: Session = Depends(get_db)):
 @router.get("/estadisticas")
 def get_statistics(db: Session = Depends(get_db)):
     return compute_statistics(db)
+
+
+@router.get("/diagnostico")
+def get_readiness(db: Session = Depends(get_db)):
+    """What would stop the generator, in plain language and with the section where it is fixed."""
+    return check_readiness(db)
