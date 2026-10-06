@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Classroom, ScheduleEntry, Subject, Teacher
 from schemas import ScheduleEntryMove, ScheduleEntryOut
-from services.csp import compute_assignments
+from services.csp import SHIFT_LABELS, compute_assignments, shift_range
 
 logger = logging.getLogger("schedule.generation")
 
@@ -93,6 +93,13 @@ def move_entry(entry_id: int, data: ScheduleEntryMove, db: Session = Depends(get
 
     subject = db.query(Subject).filter(Subject.id == entry.materia_id).first()
     new_end = time(hour=data.hora_inicio.hour + 1)
+
+    start, end = shift_range(subject.group.jornada)
+    if not start <= data.hora_inicio.hour < end:
+        raise HTTPException(
+            status_code=409,
+            detail=f"El grupo {subject.group.nombre} estudia en {SHIFT_LABELS.get(subject.group.jornada)} ({start}:00 a {end}:00)",
+        )
 
     # Other blocks that fall in the same slot
     same_slot = (

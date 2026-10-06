@@ -3,6 +3,7 @@ from collections import defaultdict
 from sqlalchemy.orm import Session
 
 from models import TeacherAvailability, ScheduleEntry, Subject
+from services.csp import SHIFT_LABELS, shift_range
 
 
 def _available_slots(db: Session, teacher_id: int) -> set:
@@ -77,6 +78,21 @@ def detect_conflicts(db: Session) -> list:
                     "descripcion": (
                         f"{e.subject.teacher.nombre} no está disponible el {e.dia_semana} "
                         f"a las {e.hora_inicio.hour:02d}:00 ({e.subject.nombre})"
+                    ),
+                    "horario_ids": [e.id],
+                }
+            )
+
+    for e in entries:
+        group = e.subject.group
+        start, end = shift_range(group.jornada)
+        if not start <= e.hora_inicio.hour < end:
+            conflicts.append(
+                {
+                    "tipo": "fuera_de_jornada",
+                    "descripcion": (
+                        f"{e.subject.nombre}: el grupo {group.nombre} estudia en {SHIFT_LABELS.get(group.jornada, group.jornada)} "
+                        f"({start}:00 a {end}:00) y tiene clase el {e.dia_semana} a las {e.hora_inicio.hour:02d}:00"
                     ),
                     "horario_ids": [e.id],
                 }
