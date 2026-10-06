@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from models import Classroom, StudentGroup, ScheduleEntry, Subject, Teacher
 
 WEEKDAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
-# 5 days x 15 possible start hours (6:00 to 20:00)
-BLOCKS_PER_WEEK = 5 * 15
+# 5 days x 16 possible start hours (6:00 to 21:00)
+BLOCKS_PER_WEEK = 5 * 16
 
 
 def _pct(part: float, total: float) -> float:

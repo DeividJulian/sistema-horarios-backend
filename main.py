@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 import models  # noqa: F401  (registers the tables on Base)
 from database import Base, engine, get_db
+from migrations import apply_migrations
 from routers import analysis, availability, classrooms, groups, schedules, seed, subjects, teachers
 
 logging.basicConfig(
@@ -21,6 +22,7 @@ logging.basicConfig(
 logger = logging.getLogger("schedule.api")
 
 Base.metadata.create_all(bind=engine)
+apply_migrations(engine)
 
 app = FastAPI(title="Sistema de Horarios y Aulas Universitarias")
 

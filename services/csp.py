@@ -24,7 +24,21 @@ class TimeLimitExceeded(Exception):
 
 # Range of possible start hours (matches the validation in schemas.py)
 MIN_HOUR = 6
-MAX_HOUR = 21
+MAX_HOUR = 22
+
+# Shift of each group: (hour the first class may start, hour the last class must end)
+SHIFTS = {
+    "todo": (6, 22),  # no restriction: default for every group
+    "manana": (7, 13),
+    "tarde": (13, 18),
+    "noche": (18, 22),
+}
+# How the user reads each shift in messages
+SHIFT_LABELS = {"todo": "cualquier hora", "manana": "la mañana", "tarde": "la tarde", "noche": "la noche"}
+
+
+def shift_range(shift: str) -> tuple[int, int]:
+    return SHIFTS.get(shift, SHIFTS["todo"])
 
 
 def split_into_hour_blocks(start: time, end: time):
@@ -41,29 +55,35 @@ def _weekday_order(day: str) -> int:
     return WEEKDAYS.index(day) if day in WEEKDAYS else len(WEEKDAYS)
 
 
-def _availability_shortage(subjects, availability_by_teacher):
+def _availability_shortage(subjects, usable_slots):
     """
-    Cheap check before searching: a teacher with fewer available hours than the hours of all
-    their subjects can never be scheduled. Returns a message for the user, or None.
+    Cheap checks before searching, so the user learns exactly what is missing. Returns a message or None.
+    1. Each subject needs enough of its teacher's availability inside its group's shift.
+    2. Each teacher needs enough hours for ALL their subjects together.
     """
+    for s in subjects:
+        available = len(usable_slots(s))
+        if available < s.intensidad_horaria:
+            shift = s.group.jornada
+            in_shift = "" if shift == "todo" else f" en {SHIFT_LABELS.get(shift, shift)}"
+            return (
+                f"{s.teacher.nombre} tiene {available} h disponibles{in_shift} y '{s.nombre}' ({s.group.nombre}) "
+                f"necesita {s.intensidad_horaria} h. Agrega disponibilidad al profesor"
+                f"{' en la jornada del grupo' if in_shift else ''}."
+            )
+
     by_teacher = defaultdict(list)
     for s in subjects:
         by_teacher[s.profesor_id].append(s)
-    for teacher_id, teacher_subjects in by_teacher.items():
-        available = len(availability_by_teacher.get(teacher_id, set()))
+    for teacher_subjects in by_teacher.values():
+        available = len(set().union(*(usable_slots(s) for s in teacher_subjects)))
         needed = sum(s.intensidad_horaria for s in teacher_subjects)
-        if available >= needed:
-            continue
-        teacher_name = teacher_subjects[0].teacher.nombre
-        if len(teacher_subjects) == 1:
-            what = f"'{teacher_subjects[0].nombre}' necesita {needed} h"
-        else:
+        if available < needed:
             names = ", ".join(f"'{s.nombre}'" for s in teacher_subjects)
-            what = f"sus materias ({names}) necesitan {needed} h"
-        return (
-            f"{teacher_name} tiene {available} h de disponibilidad y {what}. "
-            "Agrega más franjas de disponibilidad al profesor."
-        )
+            return (
+                f"{teacher_subjects[0].teacher.nombre} tiene {available} h disponibles y sus materias ({names}) "
+                f"necesitan {needed} h. Agrega más franjas de disponibilidad al profesor."
+            )
     return None
 
 
@@ -89,7 +109,13 @@ def compute_assignments(db: Session):
                     slots.add((a.dia_semana, h))
             availability_by_teacher[tid] = slots
 
-    shortage = _availability_shortage(subjects, availability_by_teacher)
+    def usable_slots(subject):
+        """Slots where a subject can be taught: its teacher's availability inside its group's shift."""
+        group = groups.get(subject.grupo_id)
+        start, end = shift_range(group.jornada if group else "todo")
+        return {(d, h) for (d, h) in availability_by_teacher.get(subject.profesor_id, set()) if start <= h.hour < end}
+
+    shortage = _availability_shortage(subjects, usable_slots)
     if shortage:
         return False, [], shortage
 
@@ -106,7 +132,7 @@ def compute_assignments(db: Session):
     ordered_subjects = sorted(
         subjects,
         key=lambda s: (
-            len(availability_by_teacher.get(s.profesor_id, set())) / s.intensidad_horaria,
+            len(usable_slots(s)) / s.intensidad_horaria,
             -degree(s),
             s.id,
         ),
@@ -129,7 +155,7 @@ def compute_assignments(db: Session):
         if group is None:
             return False
 
-        teacher_slots = availability_by_teacher.get(subject.profesor_id, set())
+        teacher_slots = usable_slots(subject)
         valid_classrooms = sorted(
             (c for c in classrooms if c.aforo >= group.num_estudiantes), key=lambda c: (c.aforo, c.id)
         )

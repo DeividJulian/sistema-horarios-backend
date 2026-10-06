@@ -32,6 +32,7 @@ def update_group(group_id: int, data: GroupCreate, db: Session = Depends(get_db)
 
     group.nombre = data.nombre
     group.num_estudiantes = data.num_estudiantes
+    group.jornada = data.jornada
     db.commit()
     db.refresh(group)
     return group

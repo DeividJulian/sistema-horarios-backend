@@ -15,9 +15,12 @@ Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max
 
 Weekday = Literal["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
 
-# Calendar range: blocks start between 6:00 and 20:00 and end at 21:00 at the latest
+# Calendar range: blocks start between 6:00 and 21:00 and end at 22:00 at the latest
 MIN_HOUR = 6
-MAX_HOUR = 21
+MAX_HOUR = 22
+
+# Shift of a group (values are part of the API contract, in Spanish)
+Shift = Literal["todo", "manana", "tarde", "noche"]
 
 
 def require_on_the_hour(value: time) -> time:
@@ -87,12 +90,14 @@ class ClassroomOut(BaseModel):
 class GroupCreate(BaseModel):
     nombre: Name
     num_estudiantes: int = Field(ge=1, le=500)
+    jornada: Shift = "todo"
 
 
 class GroupOut(BaseModel):
     id: int
     nombre: str
     num_estudiantes: int
+    jornada: str
 
     model_config = ConfigDict(from_attributes=True)
 

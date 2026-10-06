@@ -35,7 +35,7 @@ def test_fails_if_not_enough_available_hours_and_explains_why(db):
     _scenario(db, weekly_hours=7)  # the teacher only has 6 available hours
     success, _, message = csp.compute_assignments(db)
     assert not success
-    assert "6 h de disponibilidad" in message and "necesita 7 h" in message
+    assert "6 h disponibles" in message and "necesita 7 h" in message
 
 
 def test_time_limit_returns_message(db, monkeypatch):
@@ -133,4 +133,4 @@ def test_shortage_counts_every_subject_of_the_same_teacher(db):
     db.commit()
     success, _, message = csp.compute_assignments(db)
     assert not success
-    assert "3 h de disponibilidad" in message and "necesitan 4 h" in message
+    assert "3 h disponibles" in message and "necesitan 4 h" in message

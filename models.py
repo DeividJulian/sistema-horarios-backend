@@ -36,6 +36,8 @@ class StudentGroup(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, nullable=False)
     num_estudiantes = Column(Integer, nullable=False)
+    # Shift the group studies in: "manana", "tarde", "noche" or "todo" (see SHIFTS in services/csp.py)
+    jornada = Column(String, nullable=False, default="todo", server_default="todo")
 
 
 class Subject(Base):
