@@ -7,11 +7,12 @@ from pydantic import (
     EmailStr,
     Field,
     StringConstraints,
+    field_serializer,
     field_validator,
     model_validator,
 )
 
-from time_format import format_hour
+from time_format import as_utc, format_hour
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=100)]
 
@@ -249,3 +250,7 @@ class NotificationOut(BaseModel):
     creada_en: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("creada_en")
+    def with_time_zone(self, value: datetime) -> datetime:
+        return as_utc(value)

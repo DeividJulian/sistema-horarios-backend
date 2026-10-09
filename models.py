@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String, Time, func
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String, Text, Time, func
 from sqlalchemy.orm import relationship
 
 from database import Base
@@ -110,3 +110,13 @@ class Notification(Base):
     titulo = Column(String, nullable=False)
     mensaje = Column(String, nullable=False)
     creada_en = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class Backup(Base):
+    """Copy of the academic data taken before the demo data replaced it, so it can be restored."""
+
+    __tablename__ = "respaldos"
+    id = Column(Integer, primary_key=True, index=True)
+    creado_en = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    # JSON: {"resumen": {...}, "tablas": {"profesores": [...], ...}, "usuarios": {...}}
+    contenido = Column(Text, nullable=False)

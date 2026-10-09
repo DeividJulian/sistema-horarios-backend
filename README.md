@@ -100,7 +100,8 @@ Las cuentas fijas se vuelven a crear al arrancar si no existen. Correos y contra
 | Cambios de clase | `POST /schedules/{id}/cancellations`, `DELETE /cancellations/{id}`, `PATCH /schedules/{id}/classroom` | Profesor de esa clase o administrador |
 | Cancelaciones y avisos | `GET /cancellations`, `GET /notifications` | Con sesión (cada rol ve lo suyo) |
 | Análisis | `GET /conflicts`, `GET /statistics`, `GET /diagnostics` | Con sesión, excepto estudiantes |
-| Utilidades | `POST /seed?dataset=demo\|faculty&reset=true` (administrador), `GET /health` (público) | |
+| Datos de demostración | `POST /seed?dataset=demo\|faculty&reset=true`, `GET /seed/backup`, `POST /seed/restore`, `DELETE /seed/backup` | Administrador (leer la copia: con sesión) |
+| Salud | `GET /health` | Público |
 
 ### Cancelaciones, cambios de aula y avisos
 
@@ -138,7 +139,7 @@ Técnicas aplicadas:
 
 ## Datos de demostración
 
-`POST /seed` carga 5 profesores ficticios, 4 aulas, 3 grupos y 7 materias (20 horas semanales). Si ya hay datos responde `409`; con `POST /seed?reset=true` **borra todos los datos** (menos los usuarios) y vuelve a cargar los de demostración. Con `?dataset=faculty` carga una facultad completa de 8 semestres. Después de cargarlos hay que llamar a `POST /schedules/generate`.
+`POST /seed` carga 5 profesores ficticios, 4 aulas, 3 grupos y 7 materias (20 horas semanales). Si ya hay datos responde `409`; con `POST /seed?reset=true` reemplaza los datos por los de demostración, **pero antes guarda una copia** (tabla `respaldos`) de profesores, disponibilidad, aulas, grupos, materias, horario, cancelaciones, avisos y cuentas de profesor. `POST /seed/restore` vuelve exactamente a esos datos (con los mismos ids, así los estudiantes siguen en su grupo) y `DELETE /seed/backup` descarta la copia. Solo se guarda la primera copia: cargar la demo otra vez no la sobrescribe. Con `?dataset=faculty` carga una facultad completa de 8 semestres. Después de cargarlos hay que llamar a `POST /schedules/generate`.
 
 ## Pruebas
 
