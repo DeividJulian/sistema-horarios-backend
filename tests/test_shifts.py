@@ -27,19 +27,19 @@ def _clear(db):
 
 
 def test_new_group_has_no_shift_restriction(client):
-    r = client.post("/grupos", json={"nombre": "G1", "num_estudiantes": 30})
+    r = client.post("/groups", json={"nombre": "G1", "num_estudiantes": 30})
     assert r.status_code == 200 and r.json()["jornada"] == "todo"
 
 
 def test_create_and_edit_group_shift(client):
-    g = client.post("/grupos", json={"nombre": "G1", "num_estudiantes": 30, "jornada": "noche"}).json()
+    g = client.post("/groups", json={"nombre": "G1", "num_estudiantes": 30, "jornada": "noche"}).json()
     assert g["jornada"] == "noche"
-    r = client.put(f"/grupos/{g['id']}", json={"nombre": "G1", "num_estudiantes": 30, "jornada": "tarde"})
+    r = client.put(f"/groups/{g['id']}", json={"nombre": "G1", "num_estudiantes": 30, "jornada": "tarde"})
     assert r.json()["jornada"] == "tarde"
 
 
 def test_invalid_shift_returns_422(client):
-    r = client.post("/grupos", json={"nombre": "G1", "num_estudiantes": 30, "jornada": "madrugada"})
+    r = client.post("/groups", json={"nombre": "G1", "num_estudiantes": 30, "jornada": "madrugada"})
     assert r.status_code == 422
 
 
@@ -65,36 +65,36 @@ def test_detects_class_outside_the_shift(client, db):
     classroom = db.query(Classroom).first()
     db.add(ScheduleEntry(materia_id=subject.id, aula_id=classroom.id, dia_semana="Lunes", hora_inicio=time(19), hora_fin=time(20)))
     db.commit()
-    kinds = [c["tipo"] for c in client.get("/conflictos").json()["conflictos"]]
+    kinds = [c["tipo"] for c in client.get("/conflicts").json()["conflictos"]]
     assert "fuera_de_jornada" in kinds
 
 
 def test_cannot_move_a_block_outside_the_shift(client, db):
     _scenario(db, "manana")
-    assert client.post("/generar-horario").status_code == 200
-    block = client.get("/horarios").json()[0]
-    r = client.put(f"/horarios/{block['id']}", json={"dia_semana": "Viernes", "hora_inicio": "20:00:00"})
+    assert client.post("/schedules/generate").status_code == 200
+    block = client.get("/schedules").json()[0]
+    r = client.put(f"/schedules/{block['id']}", json={"dia_semana": "Viernes", "hora_inicio": "20:00:00"})
     assert r.status_code == 409 and "la mañana" in r.json()["detail"]
 
 
 def test_evening_blocks_can_start_at_21(client, db):
     _scenario(db, "noche", weekly_hours=1)
-    assert client.post("/generar-horario").status_code == 200
-    block = client.get("/horarios").json()[0]
-    r = client.put(f"/horarios/{block['id']}", json={"dia_semana": "Viernes", "hora_inicio": "21:00:00"})
+    assert client.post("/schedules/generate").status_code == 200
+    block = client.get("/schedules").json()[0]
+    r = client.put(f"/schedules/{block['id']}", json={"dia_semana": "Viernes", "hora_inicio": "21:00:00"})
     assert r.status_code == 200 and r.json()["hora_fin"] == "22:00:00"
 
 
 def test_faculty_seed_generates_a_schedule_without_conflicts(client):
-    r = client.post("/seed?dataset=facultad")
+    r = client.post("/seed?dataset=faculty")
     assert r.status_code == 200
     assert r.json()["resumen"] == {"profesores": 18, "aulas": 8, "grupos": 8, "materias": 45, "horas_semanales": 130}
-    groups = client.get("/grupos").json()
+    groups = client.get("/groups").json()
     assert [g["jornada"] for g in groups] == ["manana", "tarde", "manana", "tarde", "manana", "tarde", "noche", "noche"]
     started = clock.perf_counter()
-    assert client.post("/generar-horario").json()["total_bloques"] == 130
+    assert client.post("/schedules/generate").json()["total_bloques"] == 130
     assert clock.perf_counter() - started < csp.TIME_LIMIT_SECONDS
-    assert client.get("/conflictos").json()["hay_conflictos"] is False
+    assert client.get("/conflicts").json()["hay_conflictos"] is False
 
 
 def test_seed_with_invalid_dataset(client):

@@ -15,5 +15,5 @@ def test_ranges():
 
 
 def test_api_messages_use_am_pm(client):
-    r = client.post("/disponibilidad", json={"profesor_id": 1, "dia_semana": "Lunes", "hora_inicio": "20:00:00", "hora_fin": "23:00:00"})
+    r = client.post("/availability", json={"profesor_id": 1, "dia_semana": "Lunes", "hora_inicio": "20:00:00", "hora_fin": "23:00:00"})
     assert r.status_code == 422 and "10:00 p. m." in r.json()["detail"]

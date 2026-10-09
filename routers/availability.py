@@ -7,7 +7,7 @@ from database import get_db
 from models import Teacher, TeacherAvailability
 from schemas import AvailabilityCreate, AvailabilityOut
 
-router = APIRouter(prefix="/disponibilidad", tags=["Disponibilidad"])
+router = APIRouter(prefix="/availability", tags=["Disponibilidad"])
 
 
 @router.post("", response_model=AvailabilityOut)

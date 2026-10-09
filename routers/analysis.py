@@ -9,7 +9,7 @@ from services.stats import compute_statistics
 router = APIRouter(tags=["Análisis"])
 
 
-@router.get("/conflictos")
+@router.get("/conflicts")
 def get_conflicts(db: Session = Depends(get_db)):
     conflicts = detect_conflicts(db)
     return {
@@ -19,12 +19,12 @@ def get_conflicts(db: Session = Depends(get_db)):
     }
 
 
-@router.get("/estadisticas")
+@router.get("/statistics")
 def get_statistics(db: Session = Depends(get_db)):
     return compute_statistics(db)
 
 
-@router.get("/diagnostico")
+@router.get("/diagnostics")
 def get_readiness(db: Session = Depends(get_db)):
     """What would stop the generator, in plain language and with the section where it is fixed."""
     return check_readiness(db)

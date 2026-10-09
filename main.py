@@ -10,9 +10,11 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 import models  # noqa: F401  (registers the tables on Base)
-from database import Base, engine, get_db
+from database import Base, SessionLocal, engine, get_db
 from migrations import apply_migrations
-from routers import analysis, availability, classrooms, groups, schedules, seed, subjects, teachers
+from routers import analysis, auth, availability, classrooms, groups, schedules, seed, subjects, teachers, users
+from security import authorize
+from services.users import ensure_default_users
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,6 +25,8 @@ logger = logging.getLogger("schedule.api")
 
 Base.metadata.create_all(bind=engine)
 apply_migrations(engine)
+with SessionLocal() as session:
+    ensure_default_users(session)
 
 app = FastAPI(title="Sistema de Horarios y Aulas Universitarias")
 
@@ -34,14 +38,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(teachers.router)
-app.include_router(availability.router)
-app.include_router(classrooms.router)
-app.include_router(groups.router)
-app.include_router(subjects.router)
-app.include_router(schedules.router)
-app.include_router(analysis.router)
-app.include_router(seed.router)
+# Public: login. Users: administrators only.
+app.include_router(auth.router)
+app.include_router(users.router)
+
+# Data: every signed-in user can read, only administrators can create, edit, delete or generate
+for data_router in (teachers, availability, classrooms, groups, subjects, schedules, analysis, seed):
+    app.include_router(data_router.router, dependencies=[Depends(authorize)])
 
 
 # ---------- LOGGING: every request is logged with method, path, status code and duration ----------

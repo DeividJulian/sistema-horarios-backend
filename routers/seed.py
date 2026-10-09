@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -6,24 +6,23 @@ from services.seed import delete_all, has_data, load_demo_data, load_faculty_dat
 
 router = APIRouter(tags=["Datos de demostración"])
 
-DATASETS = {"demo": load_demo_data, "facultad": load_faculty_data}
+DATASETS = {"demo": load_demo_data, "faculty": load_faculty_data}
 
 
 @router.post("/seed")
 def load_seed(
-    # The public query parameter stays "reiniciar" (/seed?reiniciar=true)
-    reset: bool = Query(False, alias="reiniciar"),
-    # "demo" (small) or "facultad" (8 semesters of Software Engineering)
+    reset: bool = False,
+    # "demo" (small) or "faculty" (8 semesters of Software Engineering)
     dataset: str = "demo",
     db: Session = Depends(get_db),
 ):
     if dataset not in DATASETS:
-        raise HTTPException(status_code=422, detail="dataset debe ser 'demo' o 'facultad'")
+        raise HTTPException(status_code=422, detail="dataset debe ser 'demo' o 'faculty'")
     if has_data(db):
         if not reset:
             raise HTTPException(
                 status_code=409,
-                detail="Ya hay datos cargados. Usa /seed?reiniciar=true para borrarlos y cargar los de demostración.",
+                detail="Ya hay datos cargados. Usa /seed?reset=true para borrarlos y cargar los de demostración.",
             )
         delete_all(db)
 

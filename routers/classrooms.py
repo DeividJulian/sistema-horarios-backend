@@ -8,7 +8,7 @@ from database import get_db
 from models import Classroom, ScheduleEntry
 from schemas import ClassroomCreate, ClassroomOut
 
-router = APIRouter(prefix="/aulas", tags=["Aulas"])
+router = APIRouter(prefix="/classrooms", tags=["Aulas"])
 
 
 def name_in_use(db: Session, name: str, exclude_id: int | None = None) -> bool:

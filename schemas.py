@@ -153,3 +153,36 @@ class ScheduleEntryMove(BaseModel):
                 f"El bloque debe iniciar entre las {format_hour(MIN_HOUR)} y las {format_hour(MAX_HOUR - 1)}"
             )
         return value
+
+
+# ---------- Users and authentication ----------
+
+# Roles (API contract, in Spanish)
+Role = Literal["admin", "usuario"]
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+
+
+class UserOut(BaseModel):
+    id: int
+    nombre: str
+    email: str
+    rol: Role
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserCreate(BaseModel):
+    nombre: Name
+    email: EmailStr
+    password: Annotated[str, StringConstraints(min_length=8, max_length=128)]
+    rol: Role = "usuario"
+
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    usuario: UserOut

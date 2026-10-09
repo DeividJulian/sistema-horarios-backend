@@ -7,7 +7,7 @@ from database import get_db
 from models import ScheduleEntry, StudentGroup, Subject, Teacher
 from schemas import SubjectCreate, SubjectOut
 
-router = APIRouter(prefix="/materias", tags=["Materias"])
+router = APIRouter(prefix="/subjects", tags=["Materias"])
 
 
 def validate_references(data: SubjectCreate, db: Session):

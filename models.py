@@ -67,3 +67,13 @@ class ScheduleEntry(Base):
 
     subject = relationship("Subject")
     classroom = relationship("Classroom")
+
+
+class User(Base):
+    __tablename__ = "usuarios"
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False, index=True)
+    password_hash = Column(String, nullable=False)
+    # Role: "admin" (manages everything) or "usuario" (read-only: sees the schedule and the analysis)
+    rol = Column(String, nullable=False, default="usuario", server_default="usuario")

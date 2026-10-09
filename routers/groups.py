@@ -7,7 +7,7 @@ from database import get_db
 from models import StudentGroup, Subject
 from schemas import GroupCreate, GroupOut
 
-router = APIRouter(prefix="/grupos", tags=["Grupos"])
+router = APIRouter(prefix="/groups", tags=["Grupos"])
 
 
 @router.post("", response_model=GroupOut)

@@ -17,20 +17,20 @@ def _scenario(db, required="informatica", classrooms=(("Aula 101", 40, "general"
 
 
 def test_classroom_type_defaults_to_general_and_can_be_edited(client):
-    c = client.post("/aulas", json={"nombre": "Aula 1", "aforo": 30}).json()
+    c = client.post("/classrooms", json={"nombre": "Aula 1", "aforo": 30}).json()
     assert c["tipo"] == "general"
-    r = client.put(f"/aulas/{c['id']}", json={"nombre": "Aula 1", "aforo": 30, "tipo": "laboratorio"})
+    r = client.put(f"/classrooms/{c['id']}", json={"nombre": "Aula 1", "aforo": 30, "tipo": "laboratorio"})
     assert r.json()["tipo"] == "laboratorio"
-    assert client.post("/aulas", json={"nombre": "Aula 2", "aforo": 30, "tipo": "cocina"}).status_code == 422
+    assert client.post("/classrooms", json={"nombre": "Aula 2", "aforo": 30, "tipo": "cocina"}).status_code == 422
 
 
 def test_subject_room_type_defaults_to_any(client):
-    t = client.post("/profesores", json={"nombre": "Ana", "email": "ana@ucc.edu.co"}).json()
-    g = client.post("/grupos", json={"nombre": "7A", "num_estudiantes": 20}).json()
-    s = client.post("/materias", json={"nombre": "Redes", "intensidad_horaria": 2, "grupo_id": g["id"], "profesor_id": t["id"]}).json()
+    t = client.post("/teachers", json={"nombre": "Ana", "email": "ana@ucc.edu.co"}).json()
+    g = client.post("/groups", json={"nombre": "7A", "num_estudiantes": 20}).json()
+    s = client.post("/subjects", json={"nombre": "Redes", "intensidad_horaria": 2, "grupo_id": g["id"], "profesor_id": t["id"]}).json()
     assert s["tipo_aula"] == "cualquiera"
     r = client.put(
-        f"/materias/{s['id']}",
+        f"/subjects/{s['id']}",
         json={"nombre": "Redes", "intensidad_horaria": 2, "grupo_id": g["id"], "profesor_id": t["id"], "tipo_aula": "informatica"},
     )
     assert r.json()["tipo_aula"] == "informatica"
@@ -56,17 +56,17 @@ def test_detects_a_class_in_the_wrong_room_type(client, db):
     general = db.query(Classroom).filter(Classroom.tipo == "general").first()
     db.add(ScheduleEntry(materia_id=subject.id, aula_id=general.id, dia_semana="Lunes", hora_inicio=time(8), hora_fin=time(9)))
     db.commit()
-    conflicts = client.get("/conflictos").json()["conflictos"]
+    conflicts = client.get("/conflicts").json()["conflictos"]
     assert any(c["tipo"] == "tipo_de_aula" and "sala de informática" in c["descripcion"] for c in conflicts)
 
 
 def test_faculty_seed_puts_programming_in_computer_rooms(client):
-    client.post("/seed?dataset=facultad")
-    assert client.post("/generar-horario").status_code == 200
-    rooms = {c["id"]: c for c in client.get("/aulas").json()}
-    subjects = {s["id"]: s for s in client.get("/materias").json()}
-    for block in client.get("/horarios").json():
+    client.post("/seed?dataset=faculty")
+    assert client.post("/schedules/generate").status_code == 200
+    rooms = {c["id"]: c for c in client.get("/classrooms").json()}
+    subjects = {s["id"]: s for s in client.get("/subjects").json()}
+    for block in client.get("/schedules").json():
         required = subjects[block["materia_id"]]["tipo_aula"]
         if required != "cualquiera":
             assert rooms[block["aula_id"]]["tipo"] == required
-    assert client.get("/conflictos").json()["hay_conflictos"] is False
+    assert client.get("/conflicts").json()["hay_conflictos"] is False

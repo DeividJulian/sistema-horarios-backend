@@ -17,7 +17,7 @@ logger = logging.getLogger("schedule.generation")
 router = APIRouter(tags=["Horarios"])
 
 
-@router.post("/generar-horario")
+@router.post("/schedules/generate")
 def generate_schedule(db: Session = Depends(get_db)):
     started = clock.perf_counter()
     success, assignments, message = compute_assignments(db)
@@ -42,12 +42,12 @@ def generate_schedule(db: Session = Depends(get_db)):
     return {"mensaje": "Horario generado exitosamente", "total_bloques": len(assignments)}
 
 
-@router.get("/horarios", response_model=List[ScheduleEntryOut])
+@router.get("/schedules", response_model=List[ScheduleEntryOut])
 def list_schedule(db: Session = Depends(get_db)):
     return db.query(ScheduleEntry).all()
 
 
-@router.get("/horarios/grupo/{group_id}", response_model=List[ScheduleEntryOut])
+@router.get("/schedules/group/{group_id}", response_model=List[ScheduleEntryOut])
 def schedule_by_group(group_id: int, db: Session = Depends(get_db)):
     return (
         db.query(ScheduleEntry)
@@ -57,7 +57,7 @@ def schedule_by_group(group_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/horarios/profesor/{teacher_id}", response_model=List[ScheduleEntryOut])
+@router.get("/schedules/teacher/{teacher_id}", response_model=List[ScheduleEntryOut])
 def schedule_by_teacher(teacher_id: int, db: Session = Depends(get_db)):
     teacher = db.query(Teacher).filter(Teacher.id == teacher_id).first()
     if not teacher:
@@ -72,7 +72,7 @@ def schedule_by_teacher(teacher_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/horarios/aula/{classroom_id}", response_model=List[ScheduleEntryOut])
+@router.get("/schedules/classroom/{classroom_id}", response_model=List[ScheduleEntryOut])
 def schedule_by_classroom(classroom_id: int, db: Session = Depends(get_db)):
     classroom = db.query(Classroom).filter(Classroom.id == classroom_id).first()
     if not classroom:
@@ -86,7 +86,7 @@ def schedule_by_classroom(classroom_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.put("/horarios/{entry_id}", response_model=ScheduleEntryOut)
+@router.put("/schedules/{entry_id}", response_model=ScheduleEntryOut)
 def move_entry(entry_id: int, data: ScheduleEntryMove, db: Session = Depends(get_db)):
     entry = db.query(ScheduleEntry).filter(ScheduleEntry.id == entry_id).first()
     if not entry:
@@ -129,7 +129,7 @@ def move_entry(entry_id: int, data: ScheduleEntryMove, db: Session = Depends(get
     return entry
 
 
-@router.delete("/horarios/{entry_id}")
+@router.delete("/schedules/{entry_id}")
 def delete_entry(entry_id: int, db: Session = Depends(get_db)):
     entry = db.query(ScheduleEntry).filter(ScheduleEntry.id == entry_id).first()
     if not entry:

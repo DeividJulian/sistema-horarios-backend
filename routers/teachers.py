@@ -8,7 +8,7 @@ from database import get_db
 from models import Subject, Teacher
 from schemas import TeacherCreate, TeacherOut
 
-router = APIRouter(prefix="/profesores", tags=["Profesores"])
+router = APIRouter(prefix="/teachers", tags=["Profesores"])
 
 
 def email_in_use(db: Session, email: str, exclude_id: int | None = None) -> bool:
