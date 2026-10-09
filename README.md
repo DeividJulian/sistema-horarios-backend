@@ -71,32 +71,42 @@ Todos los endpoints de datos exigen iniciar sesión. El token se envía en la ca
 
 | Rol | Qué puede hacer |
 |---|---|
-| `admin` | Todo: crear, editar y eliminar datos, generar el horario, cargar datos de demostración y administrar usuarios. |
-| `usuario` | Solo consultar: ver el horario, los filtros y el análisis. Cualquier cambio responde `403`. |
+| `admin` | Todo: crear, editar y eliminar datos, generar el horario, mover bloques, cargar datos de demostración y administrar usuarios. |
+| `profesor` | Ver el horario y, en **sus propias clases**, cancelar una fecha (con motivo) o cambiar el aula. Cada cambio genera un aviso para el grupo. |
+| `estudiante` | Ver solo el horario de **su grupo** (el backend filtra `GET /schedules`), sus cancelaciones y sus avisos. No accede al análisis de la facultad. |
+| `usuario` | Consulta: ver todo sin modificar nada. |
 
-La primera vez que arranca con la tabla `usuarios` vacía, el servidor crea dos cuentas de prueba:
+Cuentas:
 
-| Rol | Correo | Contraseña |
-|---|---|---|
-| Administrador | `admin@horarios.edu.co` | `Admin2026*` |
-| Usuario | `usuario@horarios.edu.co` | `Usuario2026*` |
+- **Administrador:** `admin@horarios.edu.co` / `Admin2026*`
+- **Consulta:** `usuario@horarios.edu.co` / `Usuario2026*`
+- **Estudiante de prueba:** `estudiante@horarios.edu.co` / `Estudiante2026*` (se le asigna el primer grupo; el administrador puede cambiarlo).
+- **Profesores:** cada profesor entra con **el correo que tiene registrado** y la contraseña inicial `Profesor2026*`. La cuenta se crea, actualiza o elimina sola cuando se crea, edita o elimina el profesor. Cada uno puede cambiar su contraseña con `POST /auth/change-password`.
 
-Se pueden cambiar con las variables de entorno `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `USER_EMAIL` y `USER_PASSWORD`, o creando otros usuarios desde la aplicación.
+Las cuentas fijas se vuelven a crear al arrancar si no existen. Correos y contraseñas se cambian con `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `USER_EMAIL`, `USER_PASSWORD`, `STUDENT_EMAIL`, `STUDENT_PASSWORD` y `TEACHER_PASSWORD`. Con `DEMO_ACCOUNTS=false` el login deja de mostrar los botones de prueba.
 
 ## Endpoints
 
 | Recurso | Endpoints | Acceso |
 |---|---|---|
-| Autenticación | `POST /auth/login`, `GET /auth/me` | Público / con sesión |
-| Usuarios | `GET /users`, `POST /users`, `DELETE /users/{id}` | Administrador |
+| Autenticación | `POST /auth/login`, `GET /auth/me`, `POST /auth/change-password`, `GET /auth/demo-accounts` | Público / con sesión |
+| Usuarios | `GET /users`, `POST /users`, `PATCH /users/{id}/group`, `DELETE /users/{id}` | Administrador |
 | Profesores | `POST /teachers`, `GET /teachers`, `PUT /teachers/{id}`, `DELETE /teachers/{id}` | Leer: con sesión · Cambiar: administrador |
 | Disponibilidad | `POST /availability`, `GET /availability/{teacher_id}`, `DELETE /availability/{id}` | Igual |
 | Aulas | `POST /classrooms`, `GET /classrooms`, `PUT /classrooms/{id}`, `DELETE /classrooms/{id}` | Igual |
 | Grupos | `POST /groups`, `GET /groups`, `PUT /groups/{id}`, `DELETE /groups/{id}` | Igual |
 | Materias | `POST /subjects`, `GET /subjects`, `PUT /subjects/{id}`, `DELETE /subjects/{id}` | Igual |
-| Horarios | `POST /schedules/generate`, `GET /schedules`, `GET /schedules/group/{id}`, `GET /schedules/teacher/{id}`, `GET /schedules/classroom/{id}`, `PUT /schedules/{id}`, `DELETE /schedules/{id}` | Igual |
-| Análisis | `GET /conflicts`, `GET /statistics`, `GET /diagnostics` | Con sesión |
+| Horarios | `POST /schedules/generate`, `GET /schedules`, `GET /schedules/group/{id}`, `GET /schedules/teacher/{id}`, `GET /schedules/classroom/{id}`, `PUT /schedules/{id}`, `DELETE /schedules/{id}` | Igual (el estudiante solo recibe su grupo) |
+| Cambios de clase | `POST /schedules/{id}/cancellations`, `DELETE /cancellations/{id}`, `PATCH /schedules/{id}/classroom` | Profesor de esa clase o administrador |
+| Cancelaciones y avisos | `GET /cancellations`, `GET /notifications` | Con sesión (cada rol ve lo suyo) |
+| Análisis | `GET /conflicts`, `GET /statistics`, `GET /diagnostics` | Con sesión, excepto estudiantes |
 | Utilidades | `POST /seed?dataset=demo\|faculty&reset=true` (administrador), `GET /health` (público) | |
+
+### Cancelaciones, cambios de aula y avisos
+
+- **Cancelar** anula una clase en una fecha concreta (que debe caer en el día de la clase y no haber pasado); las demás semanas siguen igual. Se puede restablecer.
+- **Cambiar de aula** es permanente y solo acepta aulas libres a esa hora, con aforo suficiente y del tipo que pide la materia.
+- Cada cancelación, restablecimiento, cambio de aula o movimiento de un bloque crea un **aviso** (tabla `notificaciones`) para el grupo de la clase.
 
 ### Códigos de error
 

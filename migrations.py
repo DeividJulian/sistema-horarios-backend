@@ -17,6 +17,8 @@ NEW_COLUMNS = [
     ("grupos", "jornada", "VARCHAR NOT NULL DEFAULT 'todo'"),
     ("aulas", "tipo", "VARCHAR NOT NULL DEFAULT 'general'"),
     ("materias", "tipo_aula", "VARCHAR NOT NULL DEFAULT 'cualquiera'"),
+    ("usuarios", "profesor_id", "INTEGER"),
+    ("usuarios", "grupo_id", "INTEGER"),
 ]
 
 

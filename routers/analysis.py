@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from database import get_db
+from security import deny_students
 from services.conflicts import detect_conflicts
 from services.readiness import check_readiness
 from services.stats import compute_statistics
 
-router = APIRouter(tags=["Análisis"])
+router = APIRouter(tags=["Análisis"], dependencies=[Depends(deny_students)])
 
 
 @router.get("/conflicts")

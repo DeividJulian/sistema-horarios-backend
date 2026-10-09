@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 import models  # noqa: F401  (registers the tables on Base)
 from database import Base, SessionLocal, engine, get_db
 from migrations import apply_migrations
-from routers import analysis, auth, availability, classrooms, groups, schedules, seed, subjects, teachers, users
+from routers import analysis, auth, availability, class_changes, classrooms, groups, schedules, seed, subjects, teachers, users
 from security import authorize
 from services.users import ensure_default_users
 
@@ -41,6 +41,8 @@ app.add_middleware(
 # Public: login. Users: administrators only.
 app.include_router(auth.router)
 app.include_router(users.router)
+# Teachers cancel their classes or change the classroom; students read their notices
+app.include_router(class_changes.router)
 
 # Data: every signed-in user can read, only administrators can create, edit, delete or generate
 for data_router in (teachers, availability, classrooms, groups, subjects, schedules, analysis, seed):

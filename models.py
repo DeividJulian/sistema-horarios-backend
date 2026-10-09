@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Time, ForeignKey
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String, Time, func
 from sqlalchemy.orm import relationship
 
 from database import Base
@@ -75,5 +75,38 @@ class User(Base):
     nombre = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False, index=True)
     password_hash = Column(String, nullable=False)
-    # Role: "admin" (manages everything) or "usuario" (read-only: sees the schedule and the analysis)
+    # Role: "admin" (manages everything), "usuario" (read-only), "profesor" (sees and adjusts their own
+    # classes) or "estudiante" (sees only their group's schedule)
     rol = Column(String, nullable=False, default="usuario", server_default="usuario")
+    # Plain integer links (no foreign key) so they can be added to an existing table by migrations.py
+    profesor_id = Column(Integer, nullable=True)  # profesor accounts: the teacher they belong to
+    grupo_id = Column(Integer, nullable=True)  # estudiante accounts: the group they study in
+
+
+class Cancellation(Base):
+    """One class that will not take place on a given date (the weekly block itself stays)."""
+
+    __tablename__ = "cancelaciones"
+    id = Column(Integer, primary_key=True, index=True)
+    horario_id = Column(Integer, ForeignKey("horarios.id", ondelete="CASCADE"), nullable=False, index=True)
+    fecha = Column(Date, nullable=False)
+    motivo = Column(String, nullable=False)
+    usuario_id = Column(Integer, nullable=True)
+    creada_en = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    entry = relationship("ScheduleEntry")
+
+
+class Notification(Base):
+    """Notice for the students of a group (cancelled class, classroom change, schedule change)."""
+
+    __tablename__ = "notificaciones"
+    id = Column(Integer, primary_key=True, index=True)
+    grupo_id = Column(Integer, nullable=False, index=True)
+    materia_id = Column(Integer, nullable=True)
+    horario_id = Column(Integer, nullable=True)
+    # "cancelacion", "restablecida", "cambio_aula" or "cambio_horario"
+    tipo = Column(String, nullable=False)
+    titulo = Column(String, nullable=False)
+    mensaje = Column(String, nullable=False)
+    creada_en = Column(DateTime(timezone=True), nullable=False, server_default=func.now())

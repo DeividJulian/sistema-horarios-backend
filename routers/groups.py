@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import StudentGroup, Subject
+from models import StudentGroup, Subject, User
 from schemas import GroupCreate, GroupOut
 
 router = APIRouter(prefix="/groups", tags=["Grupos"])
@@ -51,6 +51,7 @@ def delete_group(group_id: int, db: Session = Depends(get_db)):
             detail="No se puede eliminar: el grupo tiene materias asignadas. Elimina esas materias primero.",
         )
 
+    db.query(User).filter(User.grupo_id == group_id).update({User.grupo_id: None})
     db.delete(group)
     db.commit()
     return {"mensaje": "Grupo eliminado"}

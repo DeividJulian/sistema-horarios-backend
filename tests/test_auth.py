@@ -50,7 +50,7 @@ def test_reader_can_read_but_not_change(reader_client):
 
 def test_admin_manages_users(client):
     users = client.get("/users").json()
-    assert {u["rol"] for u in users} == {"admin", "usuario"}
+    assert {u["rol"] for u in users} == {"admin", "usuario", "estudiante"}
 
     created = client.post(
         "/users", json={"nombre": "Laura Gómez", "email": "laura@ucc.edu.co", "password": "segura123", "rol": "usuario"}

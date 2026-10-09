@@ -1,4 +1,4 @@
-from datetime import time
+from datetime import date, datetime, time
 from typing import Annotated, Literal
 
 from pydantic import (
@@ -158,7 +158,8 @@ class ScheduleEntryMove(BaseModel):
 # ---------- Users and authentication ----------
 
 # Roles (API contract, in Spanish)
-Role = Literal["admin", "usuario"]
+Role = Literal["admin", "usuario", "profesor", "estudiante"]
+Password = Annotated[str, StringConstraints(min_length=8, max_length=128)]
 
 
 class LoginRequest(BaseModel):
@@ -171,6 +172,8 @@ class UserOut(BaseModel):
     nombre: str
     email: str
     rol: Role
+    profesor_id: int | None = None
+    grupo_id: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -178,11 +181,71 @@ class UserOut(BaseModel):
 class UserCreate(BaseModel):
     nombre: Name
     email: EmailStr
-    password: Annotated[str, StringConstraints(min_length=8, max_length=128)]
+    password: Password
     rol: Role = "usuario"
+    profesor_id: int | None = None
+    grupo_id: int | None = None
+
+    @model_validator(mode="after")
+    def check_links(self):
+        if self.rol == "estudiante" and self.grupo_id is None:
+            raise ValueError("Un estudiante debe tener un grupo")
+        if self.rol == "profesor" and self.profesor_id is None:
+            raise ValueError("Una cuenta de profesor debe estar ligada a un profesor")
+        return self
+
+
+class UserGroupChange(BaseModel):
+    grupo_id: int
+
+
+class PasswordChange(BaseModel):
+    actual: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+    nueva: Password
 
 
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
     usuario: UserOut
+
+
+class DemoAccount(BaseModel):
+    rol: Role
+    etiqueta: str
+    descripcion: str
+    email: str
+    password: str
+
+
+# ---------- Changes a teacher can make to their own classes ----------
+
+class CancellationCreate(BaseModel):
+    fecha: date
+    motivo: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=200)]
+
+
+class CancellationOut(BaseModel):
+    id: int
+    horario_id: int
+    fecha: date
+    motivo: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ClassroomChange(BaseModel):
+    aula_id: int
+
+
+class NotificationOut(BaseModel):
+    id: int
+    grupo_id: int
+    materia_id: int | None
+    horario_id: int | None
+    tipo: str
+    titulo: str
+    mensaje: str
+    creada_en: datetime
+
+    model_config = ConfigDict(from_attributes=True)

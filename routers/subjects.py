@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
+from services.class_changes import delete_cancellations
 from models import ScheduleEntry, StudentGroup, Subject, Teacher
 from schemas import SubjectCreate, SubjectOut
 
@@ -57,6 +58,8 @@ def delete_subject(subject_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Materia no encontrada")
 
     # The subject's schedule blocks would be left orphaned, so they are deleted first
+    entry_ids = [e.id for e in db.query(ScheduleEntry.id).filter(ScheduleEntry.materia_id == subject_id)]
+    delete_cancellations(db, entry_ids)
     db.query(ScheduleEntry).filter(ScheduleEntry.materia_id == subject_id).delete()
     db.delete(subject)
     db.commit()

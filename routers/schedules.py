@@ -7,8 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Classroom, ScheduleEntry, Subject, Teacher
+from models import Classroom, ScheduleEntry, Subject, Teacher, User
 from schemas import ScheduleEntryMove, ScheduleEntryOut
+from security import get_current_user
+from services.class_changes import delete_cancellations, describe, notify_group
 from services.csp import SHIFT_LABELS, compute_assignments, shift_range
 from time_format import format_range
 
@@ -26,6 +28,7 @@ def generate_schedule(db: Session = Depends(get_db)):
         logger.warning("Generation failed after %.2f s: %s", elapsed, message)
         raise HTTPException(status_code=409, detail=message)
 
+    delete_cancellations(db)
     db.query(ScheduleEntry).delete()
     for subject, classroom, day, hour in assignments:
         db.add(
@@ -43,8 +46,12 @@ def generate_schedule(db: Session = Depends(get_db)):
 
 
 @router.get("/schedules", response_model=List[ScheduleEntryOut])
-def list_schedule(db: Session = Depends(get_db)):
-    return db.query(ScheduleEntry).all()
+def list_schedule(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    query = db.query(ScheduleEntry)
+    if user.rol == "estudiante":
+        # A student only sees the schedule of the group they study in
+        query = query.join(Subject, ScheduleEntry.materia_id == Subject.id).filter(Subject.grupo_id == user.grupo_id)
+    return query.all()
 
 
 @router.get("/schedules/group/{group_id}", response_model=List[ScheduleEntryOut])
@@ -121,9 +128,15 @@ def move_entry(entry_id: int, data: ScheduleEntryMove, db: Session = Depends(get
         if other.subject.grupo_id == subject.grupo_id:
             raise HTTPException(status_code=409, detail="El grupo ya tiene clase en esa franja")
 
+    moved = (entry.dia_semana, entry.hora_inicio) != (data.dia_semana, data.hora_inicio)
+    before = describe(entry)
     entry.dia_semana = data.dia_semana
     entry.hora_inicio = data.hora_inicio
     entry.hora_fin = new_end
+    if moved:
+        # Cancellations were for the old day, so they no longer apply
+        delete_cancellations(db, [entry.id])
+        notify_group(db, entry, "cambio_horario", f"Cambio de horario: {subject.nombre}", f"La clase de {before} pasa a {describe(entry)}.")
     db.commit()
     db.refresh(entry)
     return entry
@@ -134,6 +147,7 @@ def delete_entry(entry_id: int, db: Session = Depends(get_db)):
     entry = db.query(ScheduleEntry).filter(ScheduleEntry.id == entry_id).first()
     if not entry:
         raise HTTPException(status_code=404, detail="Horario no encontrado")
+    delete_cancellations(db, [entry.id])
     db.delete(entry)
     db.commit()
     return {"mensaje": "Bloque de horario eliminado"}

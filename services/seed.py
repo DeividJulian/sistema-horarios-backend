@@ -2,7 +2,7 @@ from datetime import time
 
 from sqlalchemy.orm import Session
 
-from models import Classroom, TeacherAvailability, StudentGroup, ScheduleEntry, Subject, Teacher
+from models import Cancellation, Classroom, Notification, TeacherAvailability, StudentGroup, ScheduleEntry, Subject, Teacher, User
 from services.csp import shift_range
 
 WEEKDAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
@@ -14,8 +14,11 @@ def has_data(db: Session) -> bool:
 
 def delete_all(db: Session) -> None:
     # Order matters: tables that depend on others go first
-    for model in (ScheduleEntry, Subject, TeacherAvailability, StudentGroup, Classroom, Teacher):
+    for model in (Cancellation, Notification, ScheduleEntry, Subject, TeacherAvailability, StudentGroup, Classroom, Teacher):
         db.query(model).delete()
+    # Teacher accounts are created again for the new teachers; students lose their (deleted) group
+    db.query(User).filter(User.rol == "profesor").delete()
+    db.query(User).filter(User.grupo_id.isnot(None)).update({User.grupo_id: None})
     db.commit()
 
 

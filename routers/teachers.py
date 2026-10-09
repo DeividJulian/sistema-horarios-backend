@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Subject, Teacher
 from schemas import TeacherCreate, TeacherOut
+from services.users import sync_accounts
 
 router = APIRouter(prefix="/teachers", tags=["Profesores"])
 
@@ -27,6 +28,7 @@ def create_teacher(data: TeacherCreate, db: Session = Depends(get_db)):
     db.add(teacher)
     db.commit()
     db.refresh(teacher)
+    sync_accounts(db)  # the teacher can sign in with this email from now on
     return teacher
 
 
@@ -48,6 +50,7 @@ def update_teacher(teacher_id: int, data: TeacherCreate, db: Session = Depends(g
     teacher.email = data.email
     db.commit()
     db.refresh(teacher)
+    sync_accounts(db)
     return teacher
 
 
@@ -66,4 +69,5 @@ def delete_teacher(teacher_id: int, db: Session = Depends(get_db)):
 
     db.delete(teacher)
     db.commit()
+    sync_accounts(db)  # removes the teacher's account
     return {"mensaje": "Profesor eliminado"}

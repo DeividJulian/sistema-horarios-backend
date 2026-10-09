@@ -12,7 +12,7 @@ from models import User
 from security import create_token
 from services.users import DEFAULT_USERS, ensure_default_users
 
-ADMIN, READER = DEFAULT_USERS
+ADMIN, READER, STUDENT = DEFAULT_USERS
 
 assert str(engine.url).startswith("sqlite"), "Tests must only run against SQLite"
 

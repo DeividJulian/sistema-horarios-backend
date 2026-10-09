@@ -77,6 +77,13 @@ def require_admin(user: User = Depends(get_current_user)) -> User:
     return user
 
 
+def deny_students(user: User = Depends(get_current_user)) -> User:
+    """The faculty-wide analysis is not for students (they only see their own group's schedule)."""
+    if user.rol == "estudiante":
+        raise HTTPException(status_code=403, detail="Esta sección no está disponible para estudiantes.")
+    return user
+
+
 def authorize(request: Request, user: User = Depends(get_current_user)) -> User:
     """Data endpoints: any signed-in user may read, only administrators may change data."""
     if request.method not in READ_METHODS and user.rol != "admin":
