@@ -108,7 +108,6 @@ Las cuentas fijas se vuelven a crear al arrancar si no existen. Correos y contra
 | Cambios de clase | `POST /schedules/{id}/cancellations`, `DELETE /cancellations/{id}`, `PATCH /schedules/{id}/classroom` | Profesor de esa clase o administrador |
 | Cancelaciones y avisos | `GET /cancellations`, `GET /notifications` | Con sesión (cada rol ve lo suyo) |
 | Análisis | `GET /conflicts`, `GET /statistics`, `GET /diagnostics` | Con sesión, excepto estudiantes |
-| Inteligencia artificial | `GET /ai/status`, `POST /ai/explain` | Con sesión, excepto estudiantes |
 | Datos de demostración | `POST /seed?dataset=demo\|faculty&reset=true`, `GET /seed/backup`, `POST /seed/restore`, `DELETE /seed/backup` | Administrador (leer la copia: con sesión) |
 | Salud | `GET /health` | Público |
 
@@ -154,16 +153,6 @@ Después de que el CSP encuentra un horario válido, `services/annealing.py` lo 
 - **Restricciones:** cada movimiento respeta las mismas reglas duras del CSP, así que el resultado sigue sin cruces.
 - **Determinista:** semilla fija, así que los mismos datos dan el mismo horario. Máximo 2,5 s, con parada temprana.
 - `POST /schedules/generate` devuelve `optimizacion` con las horas muertas antes y después. En la facultad de prueba bajan de 104 a 22.
-
-## Inteligencia artificial con Claude
-
-`POST /ai/explain` le pide a Claude que explique en español el estado del horario a partir de los datos del propio sistema (diagnóstico, conflictos y estadísticas): por qué no se puede generar o qué está mal, y sugerencias concretas con la sección de la aplicación donde se arreglan. Acepta una pregunta opcional (`{"pregunta": "..."}`) y no modifica nada.
-
-- **Configuración:** solo hay que definir `ANTHROPIC_API_KEY` en las variables de entorno de Render. Sin ella, `GET /ai/status` responde `{"disponible": false}`, `POST /ai/explain` responde `503` y el resto del sistema funciona igual.
-- **Modelo:** `claude-opus-5-5` con esfuerzo `medium`. Se puede cambiar con `ANTHROPIC_MODEL` y `ANTHROPIC_EFFORT`.
-- **Reserva automática:** si el modelo rechaza una consulta por sus filtros de seguridad, la API la responde con otro modelo (`fallbacks: "default"`).
-- **Errores:** clave inválida, límite de uso, tiempo de espera o falta de conexión responden `502` con un mensaje claro.
-- **Pruebas:** usan un cliente falso, así que nunca llaman a la API real.
 
 ## Datos de demostración
 
