@@ -85,11 +85,19 @@ Cuentas:
 
 Las cuentas fijas se vuelven a crear al arrancar si no existen. Correos y contraseñas se cambian con `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `USER_EMAIL`, `USER_PASSWORD`, `STUDENT_EMAIL`, `STUDENT_PASSWORD` y `TEACHER_PASSWORD`. Con `DEMO_ACCOUNTS=false` el login deja de mostrar los botones de prueba.
 
+### Registro
+
+`POST /auth/register` permite crear cuenta sin ayuda del administrador:
+
+- **Estudiante:** nombre, correo, contraseña y grupo (`GET /auth/register-options` da la lista de grupos). Solo verá el horario de ese grupo.
+- **Profesor:** solo con el correo que el administrador registró en Profesores. Activa la cuenta que ya existe eligiendo su propia contraseña; se puede hacer una sola vez (después, `409`).
+- **Administrador y consulta:** no se pueden registrar solos; los crea un administrador en Gestión → Usuarios.
+
 ## Endpoints
 
 | Recurso | Endpoints | Acceso |
 |---|---|---|
-| Autenticación | `POST /auth/login`, `GET /auth/me`, `POST /auth/change-password`, `GET /auth/demo-accounts` | Público / con sesión |
+| Autenticación | `POST /auth/login`, `POST /auth/register`, `GET /auth/register-options`, `GET /auth/me`, `POST /auth/change-password`, `GET /auth/demo-accounts` | Público / con sesión |
 | Usuarios | `GET /users`, `POST /users`, `PATCH /users/{id}/group`, `DELETE /users/{id}` | Administrador |
 | Profesores | `POST /teachers`, `GET /teachers`, `PUT /teachers/{id}`, `DELETE /teachers/{id}` | Leer: con sesión · Cambiar: administrador |
 | Disponibilidad | `POST /availability`, `GET /availability/{teacher_id}`, `DELETE /availability/{id}` | Igual |
