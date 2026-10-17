@@ -5,6 +5,7 @@ from datetime import time
 from sqlalchemy.orm import Session
 
 from models import Classroom, TeacherAvailability, StudentGroup, Subject
+from services.annealing import improve_schedule
 
 WEEKDAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
 
@@ -107,7 +108,11 @@ def _availability_shortage(subjects, usable_slots, classrooms):
     return None
 
 
-def compute_assignments(db: Session):
+def compute_assignments(db: Session, stats: dict | None = None, improve: bool = True):
+    """
+    CSP (backtracking) for a valid schedule, then simulated annealing (services/annealing.py) to reduce idle hours.
+    Returns (success, assignments, message); `stats` receives the figures of the metaheuristic phase.
+    """
     subjects = db.query(Subject).all()
     classrooms = db.query(Classroom).all()
     groups = {g.id: g for g in db.query(StudentGroup).all()}
@@ -268,4 +273,20 @@ def compute_assignments(db: Session):
     if not success:
         return False, [], "No fue posible generar un horario sin cruces con los datos actuales. Revisa disponibilidad de profesores o número de aulas disponibles."
 
-    return True, list(result), "OK"
+    if not improve:
+        return True, list(result), "OK"
+
+    improved, annealing = improve_schedule(
+        list(result), usable_slots, classrooms, groups, MAX_GROUP_HOURS_PER_DAY, classroom_fits, WEEKDAYS
+    )
+    if stats is not None:
+        stats.update(
+            {
+                "horas_muertas_antes": annealing.idle_before,
+                "horas_muertas_despues": annealing.idle_after,
+                "iteraciones": annealing.iterations,
+                "mejoras": annealing.improvements,
+                "segundos": annealing.seconds,
+            }
+        )
+    return True, improved, "OK"

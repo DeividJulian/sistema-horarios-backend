@@ -22,7 +22,8 @@ router = APIRouter(tags=["Horarios"])
 @router.post("/schedules/generate")
 def generate_schedule(db: Session = Depends(get_db)):
     started = clock.perf_counter()
-    success, assignments, message = compute_assignments(db)
+    optimization = {}
+    success, assignments, message = compute_assignments(db, stats=optimization)
     elapsed = clock.perf_counter() - started
     if not success:
         logger.warning("Generation failed after %.2f s: %s", elapsed, message)
@@ -41,8 +42,11 @@ def generate_schedule(db: Session = Depends(get_db)):
             )
         )
     db.commit()
-    logger.info("Schedule generated: %d blocks in %.2f s", len(assignments), elapsed)
-    return {"mensaje": "Horario generado exitosamente", "total_bloques": len(assignments)}
+    logger.info(
+        "Schedule generated: %d blocks in %.2f s (idle hours %s -> %s)",
+        len(assignments), elapsed, optimization.get("horas_muertas_antes"), optimization.get("horas_muertas_despues"),
+    )
+    return {"mensaje": "Horario generado exitosamente", "total_bloques": len(assignments), "optimizacion": optimization}
 
 
 @router.get("/schedules", response_model=List[ScheduleEntryOut])
