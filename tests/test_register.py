@@ -35,6 +35,8 @@ def test_a_student_signs_up_with_their_group(client, demo_data):
 def test_student_sign_up_rules(client, demo_data):
     base = {"nombre": "Luis Díaz", "email": "luis@ucc.edu.co", "password": "segura123", "rol": "estudiante"}
     assert public.post("/auth/register", json=base).status_code == 422  # no group
+    no_name = {k: v for k, v in base.items() if k != "nombre"}
+    assert public.post("/auth/register", json={**no_name, "grupo_id": 1}).status_code == 422  # no name
     assert public.post("/auth/register", json={**base, "grupo_id": 9999}).status_code == 404
     assert public.post("/auth/register", json={**base, "grupo_id": 1, "password": "corta"}).status_code == 422
 
@@ -47,7 +49,7 @@ def test_nobody_signs_up_as_administrator(client):
 
 def test_a_teacher_activates_their_account_once(client):
     client.post("/teachers", json={"nombre": "Marta Gil", "email": "marta.gil@ucc.edu.co"})
-    body = {"nombre": "Marta", "email": "marta.gil@ucc.edu.co", "password": "miClave2026", "rol": "profesor"}
+    body = {"email": "marta.gil@ucc.edu.co", "password": "miClave2026", "rol": "profesor"}  # no name needed
 
     r = public.post("/auth/register", json=body)
     assert r.status_code == 200, r.text

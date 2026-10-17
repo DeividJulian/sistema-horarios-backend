@@ -208,14 +208,17 @@ class PasswordChange(BaseModel):
 class RegisterRequest(BaseModel):
     """Self sign-up. Administrators cannot sign themselves up: another administrator creates them."""
 
-    nombre: Name
+    # Teachers keep the name the administrator registered, so only students give one
+    nombre: Name | None = None
     email: EmailStr
     password: Password
     rol: Literal["estudiante", "profesor"]
     grupo_id: int | None = None
 
     @model_validator(mode="after")
-    def student_needs_group(self):
+    def student_needs_name_and_group(self):
+        if self.rol == "estudiante" and self.nombre is None:
+            raise ValueError("Escribe tu nombre")
         if self.rol == "estudiante" and self.grupo_id is None:
             raise ValueError("Elige tu grupo")
         return self
