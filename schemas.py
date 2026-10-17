@@ -205,6 +205,30 @@ class PasswordChange(BaseModel):
     nueva: Password
 
 
+class RegisterRequest(BaseModel):
+    """Self sign-up. Administrators cannot sign themselves up: another administrator creates them."""
+
+    nombre: Name
+    email: EmailStr
+    password: Password
+    rol: Literal["estudiante", "profesor"]
+    grupo_id: int | None = None
+
+    @model_validator(mode="after")
+    def student_needs_group(self):
+        if self.rol == "estudiante" and self.grupo_id is None:
+            raise ValueError("Elige tu grupo")
+        return self
+
+
+class RegisterGroup(BaseModel):
+    id: int
+    nombre: str
+    jornada: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"

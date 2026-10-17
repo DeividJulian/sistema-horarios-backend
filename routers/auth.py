@@ -7,8 +7,8 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import User
-from schemas import DemoAccount, LoginRequest, PasswordChange, TokenOut, UserOut
+from models import StudentGroup, Teacher, User
+from schemas import DemoAccount, LoginRequest, PasswordChange, RegisterGroup, RegisterRequest, TokenOut, UserOut
 from security import create_token, get_current_user, hash_password, verify_password
 from services.users import DEFAULT_USERS, TEACHER_PASSWORD, demo_teacher
 
@@ -28,6 +28,56 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
     logger.info("Login: %s (%s)", user.email, user.rol)
     return {"access_token": create_token(user), "token_type": "bearer", "usuario": user}
+
+
+@router.get("/register-options", response_model=List[RegisterGroup])
+def register_options(db: Session = Depends(get_db)):
+    """Groups a student can choose when signing up (public: the sign-up form needs them)."""
+    return db.query(StudentGroup).order_by(StudentGroup.nombre).all()
+
+
+@router.post("/register", response_model=TokenOut)
+def register(data: RegisterRequest, db: Session = Depends(get_db)):
+    """
+    Students create their account and choose their group. Teachers activate the account that already exists
+    for the email the administrator registered, choosing their own password. Nobody signs up as administrator.
+    """
+    email = data.email.lower()
+    if data.rol == "estudiante":
+        user = _register_student(db, data, email)
+    else:
+        user = _activate_teacher(db, data, email)
+    logger.info("Sign-up: %s (%s)", user.email, user.rol)
+    return {"access_token": create_token(user), "token_type": "bearer", "usuario": user}
+
+
+def _register_student(db: Session, data: RegisterRequest, email: str) -> User:
+    if db.query(User).filter(func.lower(User.email) == email).first():
+        raise HTTPException(status_code=409, detail="Ya existe una cuenta con ese correo. Inicia sesión.")
+    if db.get(StudentGroup, data.grupo_id) is None:
+        raise HTTPException(status_code=404, detail="El grupo elegido no existe.")
+    user = User(nombre=data.nombre, email=email, password_hash=hash_password(data.password), rol="estudiante", grupo_id=data.grupo_id)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def _activate_teacher(db: Session, data: RegisterRequest, email: str) -> User:
+    teacher = db.query(Teacher).filter(func.lower(Teacher.email) == email).first()
+    if teacher is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Ese correo no está registrado como profesor. Pídele al administrador que te agregue en Gestión → Profesores.",
+        )
+    account = db.query(User).filter(User.profesor_id == teacher.id).first()
+    # The account is created with the shared initial password; once the teacher sets their own, it is taken
+    if account is None or not verify_password(TEACHER_PASSWORD, account.password_hash):
+        raise HTTPException(status_code=409, detail="La cuenta de este profesor ya está activada. Inicia sesión con tu contraseña.")
+    account.password_hash = hash_password(data.password)
+    db.commit()
+    db.refresh(account)
+    return account
 
 
 @router.get("/me", response_model=UserOut)
