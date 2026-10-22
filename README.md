@@ -98,7 +98,7 @@ Las cuentas fijas se vuelven a crear al arrancar si no existen. Correos y contra
 | Recurso | Endpoints | Acceso |
 |---|---|---|
 | Autenticación | `POST /auth/login`, `POST /auth/register`, `GET /auth/register-options`, `GET /auth/me`, `POST /auth/change-password`, `GET /auth/demo-accounts` | Público / con sesión |
-| Usuarios | `GET /users`, `POST /users`, `PATCH /users/{id}/group`, `DELETE /users/{id}` | Administrador |
+| Usuarios | `GET /users`, `POST /users`, `PATCH /users/{id}/group`, `POST /users/{id}/reset-password` (vuelve a la contraseña inicial del rol), `DELETE /users/{id}` | Administrador |
 | Profesores | `POST /teachers`, `GET /teachers`, `PUT /teachers/{id}`, `DELETE /teachers/{id}` | Leer: con sesión · Cambiar: administrador |
 | Disponibilidad | `POST /availability`, `GET /availability/{teacher_id}`, `DELETE /availability/{id}` | Igual |
 | Aulas | `POST /classrooms`, `GET /classrooms`, `PUT /classrooms/{id}`, `DELETE /classrooms/{id}` | Igual |

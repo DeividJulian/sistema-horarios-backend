@@ -37,6 +37,13 @@ DEFAULT_USERS = [
 TEACHER_PASSWORD = os.getenv("TEACHER_PASSWORD", "Profesor2026*")
 
 
+def initial_password(rol: str) -> str:
+    """Password an account goes back to when an administrator resets it: the initial one of its role."""
+    if rol == "profesor":
+        return TEACHER_PASSWORD
+    return next(account["password"] for account in DEFAULT_USERS if account["rol"] == rol)
+
+
 def ensure_default_users(db: Session) -> None:
     created = []
     for account in DEFAULT_USERS:
