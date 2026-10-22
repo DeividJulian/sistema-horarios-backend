@@ -13,7 +13,7 @@ Proyecto final de Programación Orientada a la Web — Universidad Cooperativa d
 - Python + FastAPI
 - SQLAlchemy 2.0 + PostgreSQL (Supabase) con `psycopg` (v3)
 - Pydantic v2 para validación
-- JWT (PyJWT) para el inicio de sesión y contraseñas cifradas con PBKDF2-SHA256
+- Inicio de sesión sin contraseña: código de 6 dígitos por correo (Brevo) y sesión JWT (PyJWT)
 - pytest para pruebas
 
 ## Estructura
@@ -21,7 +21,8 @@ Proyecto final de Programación Orientada a la Web — Universidad Cooperativa d
 ```
 backend/
 ├── main.py              # App, CORS, logging, manejo de errores y protección por rol
-├── security.py          # Contraseñas, tokens JWT y dependencias de autorización
+├── config.py            # Variables de entorno (sesión, códigos, correo, primer administrador)
+├── security.py          # Tokens JWT y dependencias de autorización
 ├── database.py          # Conexión y sesión de base de datos
 ├── models.py            # Tablas (SQLAlchemy)
 ├── schemas.py           # Validación de entrada/salida (Pydantic)
@@ -31,7 +32,9 @@ backend/
 │   ├── conflicts.py     # Detector de conflictos
 │   ├── stats.py         # Ocupación, carga y cumplimiento
 │   ├── seed.py          # Datos de demostración
-│   └── users.py         # Cuentas creadas al iniciar por primera vez
+│   ├── codes.py         # Códigos de 6 dígitos para entrar sin contraseña
+│   ├── mailer.py        # Envío de correos (consola, memoria, SMTP o Brevo)
+│   └── users.py         # Primer administrador y una cuenta por profesor
 └── tests/               # Pruebas automatizadas
 ```
 
@@ -54,8 +57,12 @@ Crea un archivo `.env` (puedes copiar `.env.example`):
 
 ```
 DATABASE_URL=postgresql+psycopg://usuario:contraseña@host:puerto/base
-JWT_SECRET=una-cadena-larga-y-aleatoria   # opcional, recomendado en producción
+SECRET_KEY=una-cadena-larga-y-aleatoria   # firma las sesiones y los códigos
+EMAIL_BACKEND=consola                     # en local el código se ve en la terminal
+ADMIN_EMAIL=tu-correo@gmail.com           # primer administrador
 ```
+
+Con `EMAIL_BACKEND=consola` no se envía ningún correo: el código aparece en la terminal donde corre el servidor.
 
 Inicia el servidor:
 
@@ -67,7 +74,7 @@ La documentación interactiva queda en `http://127.0.0.1:8000/docs`.
 
 ## Inicio de sesión y roles
 
-Todos los endpoints de datos exigen iniciar sesión. El token se envía en la cabecera `Authorization: Bearer <token>` y dura 8 horas.
+Todos los endpoints de datos exigen iniciar sesión. **No hay contraseñas:** la persona escribe su correo, recibe un código de 6 dígitos y entra con él. El token se envía en la cabecera `Authorization: Bearer <token>` y dura `TOKEN_HORAS` (8 por defecto).
 
 | Rol | Qué puede hacer |
 |---|---|
@@ -76,29 +83,45 @@ Todos los endpoints de datos exigen iniciar sesión. El token se envía en la ca
 | `estudiante` | Ver solo el horario de **su grupo** (el backend filtra `GET /schedules`), sus cancelaciones y sus avisos. No accede al análisis de la facultad. |
 | `usuario` | Consulta: ver todo sin modificar nada. |
 
-Cuentas:
+### Código por correo
 
-- **Administrador:** `admin@horarios.edu.co` / `Admin2026*`
-- **Consulta:** `usuario@horarios.edu.co` / `Usuario2026*`
-- **Estudiante de prueba:** `estudiante@horarios.edu.co` / `Estudiante2026*` (se le asigna el primer grupo; el administrador puede cambiarlo).
-- **Profesores:** cada profesor entra con **el correo que tiene registrado** y la contraseña inicial `Profesor2026*`. La cuenta se crea, actualiza o elimina sola cuando se crea, edita o elimina el profesor. Cada uno puede cambiar su contraseña con `POST /auth/change-password`.
+1. `POST /auth/login` con `{"email"}` envía el código (`404` si no hay cuenta con ese correo).
+2. `POST /auth/verify` con `{"email", "codigo"}` devuelve el token y el usuario.
 
-Las cuentas fijas se vuelven a crear al arrancar si no existen. Correos y contraseñas se cambian con `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `USER_EMAIL`, `USER_PASSWORD`, `STUDENT_EMAIL`, `STUDENT_PASSWORD` y `TEACHER_PASSWORD`. Con `DEMO_ACCOUNTS=false` el login deja de mostrar los botones de prueba.
+Reglas:
+- Se genera con `secrets` y solo se guarda su HMAC-SHA256 (tabla `codigos_verificacion`).
+- Vence en `CODIGO_MINUTOS` (10) y sirve una sola vez.
+- Admite `CODIGO_INTENTOS` (5) intentos; después hay que pedir otro.
+- Entre dos envíos hay que esperar `CODIGO_ESPERA_SEGUNDOS` (30): si no, responde `429` con la cabecera `Retry-After`.
+- Un código nuevo anula los anteriores.
+- Si el correo no sale, responde `502` y no se guarda nada; el log guarda el motivo que dio Brevo, sin la clave.
+- Un token de una cuenta que nunca verificó su código recibe `401`.
+
+**Envío de correos** con `EMAIL_BACKEND`:
+- `consola`: local, se escribe en la terminal;
+- `memoria`: pruebas;
+- `smtp`: opcional;
+- `brevo`: producción. Usa la API HTTP de Brevo, porque Render gratis bloquea SMTP, y necesita `BREVO_API_KEY` y un `EMAIL_FROM` verificado en Brevo.
+
+### Cuentas
+
+- **Administrador:** se crea al arrancar con `ADMIN_EMAIL` (y `ADMIN_NAME`) si no existe. Debe ser un correo real, porque ahí llega el código.
+- **Profesores:** cada profesor entra con **el correo que tiene registrado**. Su cuenta se crea, actualiza o elimina sola cuando se crea, edita o elimina el profesor. Para probar varios profesores con un solo buzón sirve Gmail con `+algo` (`tucorreo+profe@gmail.com`).
+- **Estudiantes:** se registran solos (ver abajo) o los crea un administrador.
+- **Consulta y otros administradores:** los crea un administrador en Gestión → Usuarios, solo con nombre y correo.
+
+Las cuentas que existían antes del login por código quedan verificadas. La migración agrega `usuarios.verificado` como `TRUE` para ellas, sin borrar nada. Las que tienen correos inventados no pueden recibir el código.
 
 ### Registro
 
-`POST /auth/register` permite crear cuenta sin ayuda del administrador:
-
-- **Estudiante:** nombre, correo, contraseña y grupo (`GET /auth/register-options` da la lista de grupos). Solo verá el horario de ese grupo.
-- **Profesor:** solo con el correo que el administrador registró en Profesores. Activa la cuenta que ya existe eligiendo su propia contraseña; se puede hacer una sola vez (después, `409`).
-- **Administrador y consulta:** no se pueden registrar solos; los crea un administrador en Gestión → Usuarios.
+`POST /auth/register` con nombre, correo y grupo crea la cuenta del **estudiante** sin verificar y le envía un código; `GET /auth/register-options` da la lista de grupos. Responde `409` si el correo ya está verificado o es de un profesor o del personal: ellos solo inician sesión. Nadie se registra como administrador.
 
 ## Endpoints
 
 | Recurso | Endpoints | Acceso |
 |---|---|---|
-| Autenticación | `POST /auth/login`, `POST /auth/register`, `GET /auth/register-options`, `GET /auth/me`, `POST /auth/change-password`, `GET /auth/demo-accounts` | Público / con sesión |
-| Usuarios | `GET /users`, `POST /users`, `PATCH /users/{id}/group`, `POST /users/{id}/reset-password` (vuelve a la contraseña inicial del rol), `DELETE /users/{id}` | Administrador |
+| Autenticación | `POST /auth/register`, `POST /auth/login`, `POST /auth/verify`, `GET /auth/register-options`, `GET /auth/me` | Público / con sesión |
+| Usuarios | `GET /users`, `POST /users`, `PATCH /users/{id}/group`, `DELETE /users/{id}` | Administrador |
 | Profesores | `POST /teachers`, `GET /teachers`, `PUT /teachers/{id}`, `DELETE /teachers/{id}` | Leer: con sesión · Cambiar: administrador |
 | Disponibilidad | `POST /availability`, `GET /availability/{teacher_id}`, `DELETE /availability/{id}` | Igual |
 | Aulas | `POST /classrooms`, `GET /classrooms`, `PUT /classrooms/{id}`, `DELETE /classrooms/{id}` | Igual |

@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: sistema-horarios-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      # Signs the session tokens and the codes; Render generates a random value once
+      - key: SECRET_KEY
+        generateValue: true
+      - key: TOKEN_HORAS
+        value: "8"
+      # Login codes go out through Brevo's HTTP API (the free plan blocks SMTP ports)
+      - key: EMAIL_BACKEND
+        value: brevo
+      # A sender verified in Brevo, and the API key; both entered in Render, never in the repo
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_FROM_NAME
+        value: Horarios y Aulas
+      - key: BREVO_API_KEY
+        sync: false
+      - key: CODIGO_MINUTOS
+        value: "10"
+      - key: CODIGO_INTENTOS
+        value: "5"
+      - key: CODIGO_ESPERA_SEGUNDOS
+        value: "30"
+      # First administrator, created on startup if it doesn't exist; enters with the code sent to that email
+      - key: ADMIN_EMAIL
+        sync: false
