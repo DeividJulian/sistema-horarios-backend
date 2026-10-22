@@ -1,27 +1,15 @@
-from tests.conftest import ADMIN, READER
+from tests.conftest import ADMIN, READER, login
 
 
-def test_login_returns_token_and_role(anonymous_client):
-    r = anonymous_client.post("/auth/login", json={"email": ADMIN["email"], "password": ADMIN["password"]})
-    assert r.status_code == 200
-    body = r.json()
-    assert body["token_type"] == "bearer" and body["access_token"]
-    assert body["usuario"]["rol"] == "admin"
-    assert "password_hash" not in body["usuario"]
-
-    me = anonymous_client.get("/auth/me", headers={"Authorization": f"Bearer {body['access_token']}"})
-    assert me.json()["email"] == ADMIN["email"]
+def test_login_with_a_code_returns_token_and_role(anonymous_client):
+    session = login(ADMIN["email"])
+    me = session.get("/auth/me").json()
+    assert me["email"] == ADMIN["email"] and me["rol"] == "admin" and me["verificado"] is True
+    assert "password_hash" not in me
 
 
 def test_login_is_case_insensitive_on_email(anonymous_client):
-    r = anonymous_client.post("/auth/login", json={"email": READER["email"].upper(), "password": READER["password"]})
-    assert r.status_code == 200 and r.json()["usuario"]["rol"] == "usuario"
-
-
-def test_wrong_password_is_rejected(anonymous_client):
-    r = anonymous_client.post("/auth/login", json={"email": ADMIN["email"], "password": "incorrecta"})
-    assert r.status_code == 401
-    assert r.json()["detail"] == "Correo o contraseña incorrectos."
+    assert login(READER["email"].upper()).get("/auth/me").json()["rol"] == "usuario"
 
 
 def test_data_requires_login(anonymous_client):
@@ -52,17 +40,14 @@ def test_admin_manages_users(client):
     users = client.get("/users").json()
     assert {u["rol"] for u in users} == {"admin", "usuario", "estudiante"}
 
-    created = client.post(
-        "/users", json={"nombre": "Laura Gómez", "email": "laura@ucc.edu.co", "password": "segura123", "rol": "usuario"}
-    )
+    created = client.post("/users", json={"nombre": "Laura Gómez", "email": "Laura@ucc.edu.co", "rol": "usuario"})
     assert created.status_code == 200
-    assert client.post(
-        "/users", json={"nombre": "Laura Gómez", "email": "laura@ucc.edu.co", "password": "segura123"}
-    ).status_code == 409
-    assert client.post("/users", json={"nombre": "X Y", "email": "x@ucc.edu.co", "password": "corta"}).status_code == 422
+    assert created.json()["email"] == "laura@ucc.edu.co" and created.json()["verificado"] is False
+    assert client.post("/users", json={"nombre": "Laura Gómez", "email": "laura@ucc.edu.co"}).status_code == 409
+    assert client.post("/users", json={"nombre": "X", "email": "x@ucc.edu.co"}).status_code == 422
 
-    login = client.post("/auth/login", json={"email": "laura@ucc.edu.co", "password": "segura123"})
-    assert login.status_code == 200
+    # No password: the new account enters with a code and is verified from then on
+    assert login("laura@ucc.edu.co").get("/auth/me").json()["verificado"] is True
 
     assert client.delete(f"/users/{created.json()['id']}").status_code == 200
 

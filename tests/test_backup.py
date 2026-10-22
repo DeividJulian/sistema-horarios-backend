@@ -4,14 +4,7 @@ from fastapi.testclient import TestClient
 
 from main import app
 from services.class_changes import WEEKDAY_INDEX, today
-from services.users import TEACHER_PASSWORD
-from tests.conftest import STUDENT
-
-
-def login(email: str, password: str) -> TestClient:
-    r = TestClient(app).post("/auth/login", json={"email": email, "password": password})
-    assert r.status_code == 200, r.text
-    return TestClient(app, headers={"Authorization": f"Bearer {r.json()['access_token']}"})
+from tests.conftest import STUDENT, login
 
 
 def my_data(client):
@@ -28,9 +21,8 @@ def my_data(client):
     day = today()
     while day.weekday() != WEEKDAY_INDEX[entry["dia_semana"]]:
         day += timedelta(days=1)
-    prof = login("real@ucc.edu.co", TEACHER_PASSWORD)
+    prof = login("real@ucc.edu.co")
     assert prof.post(f"/schedules/{entry['id']}/cancellations", json={"fecha": day.isoformat(), "motivo": "Congreso"}).status_code == 200
-    prof.post("/auth/change-password", json={"actual": TEACHER_PASSWORD, "nueva": "claveDelProfe1"})
 
     student_id = next(u["id"] for u in client.get("/users").json() if u["email"] == STUDENT["email"])
     client.patch(f"/users/{student_id}/group", json={"grupo_id": group["id"]})
@@ -56,9 +48,9 @@ def test_loading_the_demo_keeps_a_copy_and_restores_everything(client):
     for path, rows in before.items():
         assert client.get(path).json() == rows, path
 
-    # The teacher's account comes back with the password they had set; the student is in their group again
-    login("real@ucc.edu.co", "claveDelProfe1")
-    student = login(STUDENT["email"], STUDENT["password"])
+    # The teacher's account comes back already verified; the student is in their group again
+    assert login("real@ucc.edu.co").get("/auth/me").json()["verificado"] is True
+    student = login(STUDENT["email"])
     assert student.get("/auth/me").json()["grupo_id"] == group["id"]
     assert [e["id"] for e in student.get("/schedules").json()] == [e["id"] for e in before["/schedules"]]
 

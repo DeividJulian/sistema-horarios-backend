@@ -5,14 +5,7 @@ from fastapi.testclient import TestClient
 
 from main import app
 from services.class_changes import WEEKDAY_INDEX, today
-from services.users import TEACHER_PASSWORD
-from tests.conftest import STUDENT
-
-
-def login(email: str, password: str) -> TestClient:
-    r = TestClient(app).post("/auth/login", json={"email": email, "password": password})
-    assert r.status_code == 200, r.text
-    return TestClient(app, headers={"Authorization": f"Bearer {r.json()['access_token']}"})
+from tests.conftest import STUDENT, login, place_student
 
 
 def next_date(weekday: str):
@@ -44,19 +37,14 @@ def test_every_teacher_gets_an_account_with_their_email(generated):
     teacher_accounts = {u["email"]: u for u in users if u["rol"] == "profesor"}
     assert {t["email"] for t in teachers} == set(teacher_accounts)
     teacher = teachers[0]
-    me = login(teacher["email"], TEACHER_PASSWORD).get("/auth/me").json()
+    me = login(teacher["email"]).get("/auth/me").json()
     assert me["rol"] == "profesor" and me["profesor_id"] == teacher["id"]
 
 
-def test_demo_accounts_cover_every_role(generated):
-    accounts = TestClient(app).get("/auth/demo-accounts").json()
-    assert [a["rol"] for a in accounts] == ["admin", "profesor", "estudiante", "usuario"]
-    for account in accounts:
-        login(account["email"], account["password"])
-
 
 def test_student_only_sees_their_group(generated):
-    student = login(STUDENT["email"], STUDENT["password"])
+    place_student(generated)
+    student = login(STUDENT["email"])
     me = student.get("/auth/me").json()
     assert me["grupo_id"] is not None
 
@@ -73,7 +61,7 @@ def test_student_only_sees_their_group(generated):
 
 def test_teacher_cancels_a_class_and_the_group_is_notified(generated):
     teacher, entry, subject = teacher_with_entry(generated)
-    prof = login(teacher["email"], TEACHER_PASSWORD)
+    prof = login(teacher["email"])
     day = next_date(entry["dia_semana"])
 
     r = prof.post(f"/schedules/{entry['id']}/cancellations", json={"fecha": day.isoformat(), "motivo": "Cita médica"})
@@ -89,8 +77,8 @@ def test_teacher_cancels_a_class_and_the_group_is_notified(generated):
     assert prof.get("/notifications").json()[0]["id"] == notices[0]["id"]
 
     # A student of that group sees the notice and the cancellation
-    generated.patch(f"/users/{student_id(generated)}/group", json={"grupo_id": subject["grupo_id"]})
-    student = login(STUDENT["email"], STUDENT["password"])
+    place_student(generated, subject["grupo_id"])
+    student = login(STUDENT["email"])
     assert student.get("/notifications").json()[0]["tipo"] == "cancelacion"
     assert [c["id"] for c in student.get("/cancellations").json()] == [cancellation["id"]]
 
@@ -99,13 +87,9 @@ def test_teacher_cancels_a_class_and_the_group_is_notified(generated):
     assert student.get("/cancellations").json() == []
 
 
-def student_id(admin: TestClient) -> int:
-    return next(u["id"] for u in admin.get("/users").json() if u["email"] == STUDENT["email"])
-
-
 def test_cancellation_rules(generated):
     teacher, entry, _ = teacher_with_entry(generated)
-    prof = login(teacher["email"], TEACHER_PASSWORD)
+    prof = login(teacher["email"])
     day = next_date(entry["dia_semana"])
 
     wrong_day = prof.post(f"/schedules/{entry['id']}/cancellations", json={"fecha": (day + timedelta(days=1)).isoformat(), "motivo": "x y z"})
@@ -115,10 +99,10 @@ def test_cancellation_rules(generated):
 
     # Another teacher, a student and the read-only user cannot cancel it
     others = [t for t in generated.get("/teachers").json() if t["id"] != teacher["id"]]
-    other = login(others[0]["email"], TEACHER_PASSWORD)
+    other = login(others[0]["email"])
     body = {"fecha": day.isoformat(), "motivo": "No es mía"}
     assert other.post(f"/schedules/{entry['id']}/cancellations", json=body).status_code == 403
-    assert login(STUDENT["email"], STUDENT["password"]).post(f"/schedules/{entry['id']}/cancellations", json=body).status_code == 403
+    assert login(STUDENT["email"]).post(f"/schedules/{entry['id']}/cancellations", json=body).status_code == 403
 
     # The administrator can
     assert generated.post(f"/schedules/{entry['id']}/cancellations", json=body).status_code == 200
@@ -126,7 +110,7 @@ def test_cancellation_rules(generated):
 
 def test_teacher_changes_the_classroom(generated):
     teacher, entry, subject = teacher_with_entry(generated)
-    prof = login(teacher["email"], TEACHER_PASSWORD)
+    prof = login(teacher["email"])
     group = next(g for g in generated.get("/groups").json() if g["id"] == subject["grupo_id"])
     schedules = generated.get("/schedules").json()
     busy = {e["aula_id"] for e in schedules if e["dia_semana"] == entry["dia_semana"] and e["hora_inicio"] == entry["hora_inicio"]}
@@ -166,9 +150,9 @@ def test_moving_a_block_notifies_the_group(generated):
 
 def test_teacher_account_follows_the_teacher(client):
     t = client.post("/teachers", json={"nombre": "Nuevo Profe", "email": "nuevo@ucc.edu.co"}).json()
-    login("nuevo@ucc.edu.co", TEACHER_PASSWORD)
+    login("nuevo@ucc.edu.co")
     client.put(f"/teachers/{t['id']}", json={"nombre": "Nuevo Profe", "email": "otro@ucc.edu.co"})
-    login("otro@ucc.edu.co", TEACHER_PASSWORD)
+    login("otro@ucc.edu.co")
     account = next(u for u in client.get("/users").json() if u["profesor_id"] == t["id"])
     assert client.delete(f"/users/{account['id']}").status_code == 409  # managed from Profesores
     client.delete(f"/teachers/{t['id']}")
@@ -177,17 +161,10 @@ def test_teacher_account_follows_the_teacher(client):
 
 def test_admin_creates_students_with_a_group(client, demo_data):
     group = client.get("/groups").json()[0]
-    base = {"nombre": "Ana Ruiz", "email": "ana.ruiz@ucc.edu.co", "password": "segura123", "rol": "estudiante"}
+    base = {"nombre": "Ana Ruiz", "email": "ana.ruiz@ucc.edu.co", "rol": "estudiante"}
     assert client.post("/users", json=base).status_code == 422
     created = client.post("/users", json={**base, "grupo_id": group["id"]})
     assert created.status_code == 200 and created.json()["grupo_id"] == group["id"]
     other = client.get("/groups").json()[1]
     moved = client.patch(f"/users/{created.json()['id']}/group", json={"grupo_id": other["id"]})
     assert moved.json()["grupo_id"] == other["id"]
-
-
-def test_change_password(client):
-    student = login(STUDENT["email"], STUDENT["password"])
-    assert student.post("/auth/change-password", json={"actual": "mala", "nueva": "otraClave123"}).status_code == 400
-    assert student.post("/auth/change-password", json={"actual": STUDENT["password"], "nueva": "otraClave123"}).status_code == 200
-    login(STUDENT["email"], "otraClave123")
