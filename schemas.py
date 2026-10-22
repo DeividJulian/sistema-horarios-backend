@@ -1,5 +1,5 @@
 from datetime import date, datetime, time
-from typing import Annotated, Literal
+from typing import Annotated, List, Literal
 
 from pydantic import (
     BaseModel,
@@ -144,6 +144,8 @@ class ScheduleEntryOut(BaseModel):
 class ScheduleEntryMove(BaseModel):
     dia_semana: Weekday
     hora_inicio: time
+    # Optional: also moves the block to this classroom (for example an option suggested by the AI)
+    aula_id: int | None = None
 
     @field_validator("hora_inicio")
     @classmethod
@@ -236,9 +238,14 @@ class TokenOut(BaseModel):
 
 # ---------- Changes a teacher can make to their own classes ----------
 
+# Text the students receive, written (or reviewed) by the teacher; without it the system writes one
+NoticeText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=10, max_length=600)]
+
+
 class CancellationCreate(BaseModel):
     fecha: date
     motivo: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=200)]
+    aviso: NoticeText | None = None
 
 
 class CancellationOut(BaseModel):
@@ -252,6 +259,7 @@ class CancellationOut(BaseModel):
 
 class ClassroomChange(BaseModel):
     aula_id: int
+    aviso: NoticeText | None = None
 
 
 class NotificationOut(BaseModel):
@@ -269,3 +277,52 @@ class NotificationOut(BaseModel):
     @field_serializer("creada_en")
     def with_time_zone(self, value: datetime) -> datetime:
         return as_utc(value)
+
+
+# ---------- AI (it only advises: it never changes data by itself) ----------
+
+
+class AIStatus(BaseModel):
+    configurada: bool
+    proveedor: str
+    nombre_proveedor: str
+    modelo: str
+
+
+class ConflictOption(BaseModel):
+    indice: int
+    dia_semana: str
+    hora_inicio: time
+    aula_id: int
+    aula: str
+    aforo: int
+    horas_muertas_grupo: int
+    horas_muertas_profesor: int
+    mismo_dia: bool
+    misma_aula: bool
+
+
+class ConflictSuggestion(BaseModel):
+    horario_id: int
+    conflictos: List[str]
+    opciones: List[ConflictOption]
+    recomendada: int | None
+    explicacion: str
+    motivos: List[str]
+    proveedor: str
+    modelo: str
+
+
+class NoticeDraftRequest(BaseModel):
+    horario_id: int
+    tipo: Literal["cancelacion", "cambio_aula"]
+    fecha: date | None = None
+    aula_id: int | None = None
+    motivo: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] | None = None
+
+
+class NoticeDraftOut(BaseModel):
+    titulo: str
+    mensaje: str
+    proveedor: str
+    modelo: str

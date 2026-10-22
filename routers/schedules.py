@@ -11,7 +11,7 @@ from models import Classroom, ScheduleEntry, Subject, Teacher, User
 from schemas import ScheduleEntryMove, ScheduleEntryOut
 from security import get_current_user
 from services.class_changes import delete_cancellations, describe, notify_group
-from services.csp import SHIFT_LABELS, compute_assignments, shift_range
+from services.csp import SHIFT_LABELS, classroom_fits, compute_assignments, shift_range
 from time_format import format_range
 
 logger = logging.getLogger("schedule.generation")
@@ -113,6 +113,18 @@ def move_entry(entry_id: int, data: ScheduleEntryMove, db: Session = Depends(get
             detail=f"El grupo {subject.group.nombre} estudia en {SHIFT_LABELS.get(subject.group.jornada)} ({format_range(start, end)})",
         )
 
+    room_id = entry.aula_id
+    if data.aula_id is not None and data.aula_id != entry.aula_id:
+        classroom = db.get(Classroom, data.aula_id)
+        if classroom is None:
+            raise HTTPException(status_code=404, detail="Aula no encontrada")
+        if not classroom_fits(classroom, subject, subject.group.num_estudiantes):
+            raise HTTPException(
+                status_code=409,
+                detail=f"{classroom.nombre} no sirve para {subject.nombre}: no tiene el aforo o el tipo de aula necesarios.",
+            )
+        room_id = classroom.id
+
     # Other blocks that fall in the same slot
     same_slot = (
         db.query(ScheduleEntry)
@@ -125,7 +137,7 @@ def move_entry(entry_id: int, data: ScheduleEntryMove, db: Session = Depends(get
         .all()
     )
     for other in same_slot:
-        if other.aula_id == entry.aula_id:
+        if other.aula_id == room_id:
             raise HTTPException(status_code=409, detail="El aula ya está ocupada en esa franja")
         if other.subject.profesor_id == subject.profesor_id:
             raise HTTPException(status_code=409, detail="El profesor ya tiene clase en esa franja")
@@ -133,14 +145,22 @@ def move_entry(entry_id: int, data: ScheduleEntryMove, db: Session = Depends(get
             raise HTTPException(status_code=409, detail="El grupo ya tiene clase en esa franja")
 
     moved = (entry.dia_semana, entry.hora_inicio) != (data.dia_semana, data.hora_inicio)
+    new_room = room_id != entry.aula_id
     before = describe(entry)
+    entry.aula_id = room_id
     entry.dia_semana = data.dia_semana
     entry.hora_inicio = data.hora_inicio
     entry.hora_fin = new_end
     if moved:
         # Cancellations were for the old day, so they no longer apply
         delete_cancellations(db, [entry.id])
-        notify_group(db, entry, "cambio_horario", f"Cambio de horario: {subject.nombre}", f"La clase de {before} pasa a {describe(entry)}.")
+    if moved or new_room:
+        db.flush()
+        db.refresh(entry)
+        notify_group(
+            db, entry, "cambio_horario", f"Cambio de horario: {subject.nombre}",
+            f"La clase de {before} pasa a {describe(entry)} en {entry.classroom.nombre}.",
+        )
     db.commit()
     db.refresh(entry)
     return entry

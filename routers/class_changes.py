@@ -23,7 +23,7 @@ def create_cancellation(
     user: User = Depends(get_current_user),
 ):
     entry = get_entry_for_change(db, entry_id, user)
-    return cancel_class(db, entry, data.fecha, data.motivo, user)
+    return cancel_class(db, entry, data.fecha, data.motivo, user, data.aviso)
 
 
 @router.delete("/cancellations/{cancellation_id}")
@@ -57,7 +57,7 @@ def update_classroom(
     user: User = Depends(get_current_user),
 ):
     entry = get_entry_for_change(db, entry_id, user)
-    return change_classroom(db, entry, data.aula_id)
+    return change_classroom(db, entry, data.aula_id, data.aviso)
 
 
 @router.get("/notifications", response_model=List[NotificationOut])

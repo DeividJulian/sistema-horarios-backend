@@ -47,7 +47,8 @@ def describe(entry: ScheduleEntry) -> str:
     return f"{entry.subject.nombre} ({entry.dia_semana.lower()}, {format_hour(entry.hora_inicio.hour)})"
 
 
-def cancel_class(db: Session, entry: ScheduleEntry, day: date, reason: str, user: User) -> Cancellation:
+def cancel_class(db: Session, entry: ScheduleEntry, day: date, reason: str, user: User, notice: str | None = None) -> Cancellation:
+    """notice: text for the students written or reviewed by the teacher; without it the system writes one."""
     if day.weekday() != WEEKDAY_INDEX[entry.dia_semana]:
         raise HTTPException(status_code=422, detail=f"Esa fecha no es {entry.dia_semana.lower()}, el día de esta clase.")
     if day < today():
@@ -63,7 +64,8 @@ def cancel_class(db: Session, entry: ScheduleEntry, day: date, reason: str, user
         entry,
         "cancelacion",
         f"Clase cancelada: {entry.subject.nombre}",
-        f"La clase de {entry.subject.nombre} del {format_date(day)} a las {format_hour(entry.hora_inicio.hour)} "
+        notice
+        or f"La clase de {entry.subject.nombre} del {format_date(day)} a las {format_hour(entry.hora_inicio.hour)} "
         f"en {entry.classroom.nombre} no se dictará. Motivo: {reason}",
     )
     db.commit()
@@ -85,7 +87,7 @@ def restore_class(db: Session, cancellation: Cancellation) -> None:
     db.commit()
 
 
-def change_classroom(db: Session, entry: ScheduleEntry, classroom_id: int) -> ScheduleEntry:
+def change_classroom(db: Session, entry: ScheduleEntry, classroom_id: int, notice: str | None = None) -> ScheduleEntry:
     classroom = db.get(Classroom, classroom_id)
     if classroom is None:
         raise HTTPException(status_code=404, detail="Aula no encontrada")
@@ -117,7 +119,7 @@ def change_classroom(db: Session, entry: ScheduleEntry, classroom_id: int) -> Sc
         entry,
         "cambio_aula",
         f"Cambio de aula: {subject.nombre}",
-        f"Desde ahora la clase de {describe(entry)} es en {classroom.nombre} (antes en {previous}).",
+        notice or f"Desde ahora la clase de {describe(entry)} es en {classroom.nombre} (antes en {previous}).",
     )
     db.commit()
     db.refresh(entry)
