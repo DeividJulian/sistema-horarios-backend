@@ -14,6 +14,7 @@ Proyecto final de Programación Orientada a la Web — Universidad Cooperativa d
 - SQLAlchemy 2.0 + PostgreSQL (Supabase) con `psycopg` (v3)
 - Pydantic v2 para validación
 - Inicio de sesión sin contraseña: código de 6 dígitos por correo (Brevo) y sesión JWT (PyJWT)
+- IA con Groq (gratis) por su endpoint compatible con OpenAI, sin SDK y con salidas estructuradas
 - pytest para pruebas
 
 ## Estructura
@@ -34,6 +35,9 @@ backend/
 │   ├── seed.py          # Datos de demostración
 │   ├── codes.py         # Códigos de 6 dígitos para entrar sin contraseña
 │   ├── mailer.py        # Envío de correos (consola, memoria, SMTP o Brevo)
+│   ├── llm.py           # Cliente de IA independiente del proveedor (Groq por defecto)
+│   ├── privacy.py       # Quita nombres, correos y teléfonos antes de hablar con la IA
+│   ├── ai.py            # Usos de la IA: resolver un conflicto y redactar avisos
 │   └── users.py         # Primer administrador y una cuenta por profesor
 └── tests/               # Pruebas automatizadas
 ```
@@ -131,6 +135,7 @@ Las cuentas que existían antes del login por código quedan verificadas. La mig
 | Cambios de clase | `POST /schedules/{id}/cancellations`, `DELETE /cancellations/{id}`, `PATCH /schedules/{id}/classroom` | Profesor de esa clase o administrador |
 | Cancelaciones y avisos | `GET /cancellations`, `GET /notifications` | Con sesión (cada rol ve lo suyo) |
 | Análisis | `GET /conflicts`, `GET /statistics`, `GET /diagnostics` | Con sesión, excepto estudiantes |
+| Inteligencia artificial | `GET /ai/status`, `POST /ai/conflicts/{id}/suggestion` (administrador), `POST /ai/notices/draft` (profesor de la clase o administrador) | Con sesión, excepto estudiantes |
 | Datos de demostración | `POST /seed?dataset=demo\|faculty&reset=true`, `GET /seed/backup`, `POST /seed/restore`, `DELETE /seed/backup` | Administrador (leer la copia: con sesión) |
 | Salud | `GET /health` | Público |
 
@@ -176,6 +181,33 @@ Después de que el CSP encuentra un horario válido, `services/annealing.py` lo 
 - **Restricciones:** cada movimiento respeta las mismas reglas duras del CSP, así que el resultado sigue sin cruces.
 - **Determinista:** semilla fija, así que los mismos datos dan el mismo horario. Máximo 2,5 s, con parada temprana.
 - `POST /schedules/generate` devuelve `optimizacion` con las horas muertas antes y después. En la facultad de prueba bajan de 104 a 22.
+
+## Inteligencia artificial (Groq)
+
+La IA **solo aconseja**: nunca cambia datos por su cuenta.
+
+- **Resolver un conflicto** (`POST /ai/conflicts/{id}/suggestion`, administrador):
+  - el sistema calcula hasta 6 franjas y aulas donde la clase en rojo cabe sin romper ninguna regla (disponibilidad, cruces, aforo, tipo de aula, jornada y máximo de horas por día);
+  - el modelo elige la mejor y explica por qué;
+  - el administrador la aplica con `PUT /schedules/{id}`, que ahora acepta `aula_id` opcional.
+- **Redactar avisos** (`POST /ai/notices/draft`, profesor de la clase o administrador): a partir de un motivo breve, el modelo redacta el aviso para los estudiantes de una cancelación o un cambio de aula. El profesor lo revisa y lo envía en el campo opcional `aviso` de la cancelación o del cambio de aula; sin ese campo, el sistema escribe el aviso como antes.
+
+**Privacidad:** al modelo nunca llegan nombres, correos ni teléfonos (`services/privacy.py`).
+- Los profesores van como «Docente A, B…».
+- Los correos y teléfonos del motivo se reemplazan.
+- Los nombres reales vuelven solo en la respuesta que ve el usuario.
+
+**Configuración:**
+- Variables: `AI_PROVIDER` (`groq` por defecto; también `gemini` u `openai`), `AI_API_KEY` (la clave `gsk_…` de Groq), `AI_MODEL` (`openai/gpt-oss-20b`) y, opcionales, `AI_BASE_URL` y `AI_FALLBACK_MODEL`.
+- Las respuestas usan salidas estructuradas (`json_schema` estricto) validadas con Pydantic.
+- `GET /ai/status` responde `{configurada, proveedor, nombre_proveedor, modelo}`; el frontend muestra el proveedor que dice el servidor.
+
+**Errores (nunca `500`):**
+- sin clave: `503`;
+- límite de uso: `429`, con `Retry-After` si el proveedor lo envía;
+- proveedor caído, lento o con una respuesta inválida: `502`. Se reintenta una vez si responde `5xx`.
+
+Las pruebas simulan el HTTP de Groq, así que nunca llaman a la API real.
 
 ## Datos de demostración
 

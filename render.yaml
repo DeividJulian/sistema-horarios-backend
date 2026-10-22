@@ -33,3 +33,10 @@ services:
       # First administrator, created on startup if it doesn't exist; enters with the code sent to that email
       - key: ADMIN_EMAIL
         sync: false
+      # Language model: Groq (free tier, fast); the key (gsk_...) is entered in Render, never in the repo
+      - key: AI_PROVIDER
+        value: groq
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: openai/gpt-oss-20b
