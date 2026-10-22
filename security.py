@@ -1,9 +1,5 @@
-"""Password hashing, JWT tokens and the dependencies that protect the endpoints by role."""
-import hashlib
-import hmac
+"""JWT session tokens and the dependencies that protect the endpoints by role."""
 import logging
-import os
-import secrets
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -11,42 +7,22 @@ from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from database import DATABASE_URL, get_db
+import config
+from database import get_db
 from models import User
 
 logger = logging.getLogger("schedule.auth")
 
 ALGORITHM = "HS256"
-TOKEN_HOURS = 8
-PBKDF2_ROUNDS = 260_000
-
-# JWT_SECRET should be set in production. Without it the secret is derived from DATABASE_URL, which is
-# already private and stable across restarts (a random one would log everybody out on every Render restart).
-SECRET_KEY = os.getenv("JWT_SECRET") or hashlib.sha256(f"jwt::{DATABASE_URL}".encode()).hexdigest()
 
 READ_METHODS = {"GET", "HEAD", "OPTIONS"}
 
 bearer = HTTPBearer(auto_error=False)
 
 
-def hash_password(password: str) -> str:
-    salt = secrets.token_hex(16)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), PBKDF2_ROUNDS).hex()
-    return f"pbkdf2_sha256${PBKDF2_ROUNDS}${salt}${digest}"
-
-
-def verify_password(password: str, stored: str) -> bool:
-    try:
-        _, rounds, salt, digest = stored.split("$")
-    except ValueError:
-        return False
-    candidate = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), int(rounds)).hex()
-    return hmac.compare_digest(candidate, digest)
-
-
-def create_token(user: User) -> str:
-    expires = datetime.now(timezone.utc) + timedelta(hours=TOKEN_HOURS)
-    return jwt.encode({"sub": str(user.id), "rol": user.rol, "exp": expires}, SECRET_KEY, algorithm=ALGORITHM)
+def create_token(user: User, hours: float | None = None) -> str:
+    expires = datetime.now(timezone.utc) + timedelta(hours=config.TOKEN_HOURS if hours is None else hours)
+    return jwt.encode({"sub": str(user.id), "rol": user.rol, "exp": expires}, config.SECRET_KEY, algorithm=ALGORITHM)
 
 
 def get_current_user(
@@ -61,12 +37,13 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(credentials.credentials, config.SECRET_KEY, algorithms=[ALGORITHM])
         user_id = int(payload["sub"])
     except (jwt.PyJWTError, KeyError, ValueError):
         raise unauthorized
     user = db.get(User, user_id)
-    if user is None:
+    # An account that never entered its first code can not be used yet
+    if user is None or not user.verificado:
         raise unauthorized
     return user
 

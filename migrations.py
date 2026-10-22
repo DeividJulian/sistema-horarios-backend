@@ -19,6 +19,8 @@ NEW_COLUMNS = [
     ("materias", "tipo_aula", "VARCHAR NOT NULL DEFAULT 'cualquiera'"),
     ("usuarios", "profesor_id", "INTEGER"),
     ("usuarios", "grupo_id", "INTEGER"),
+    # Code login: the accounts that already existed stay usable (new accounts are created unverified)
+    ("usuarios", "verificado", "BOOLEAN NOT NULL DEFAULT TRUE"),
 ]
 
 

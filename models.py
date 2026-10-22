@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String, Text, Time, func
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text, Time, func
 from sqlalchemy.orm import relationship
 
 from database import Base
@@ -70,17 +70,39 @@ class ScheduleEntry(Base):
 
 
 class User(Base):
+    """Account that signs in with a code sent to its email (no passwords)."""
+
     __tablename__ = "usuarios"
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False, index=True)
-    password_hash = Column(String, nullable=False)
+    # Left from the password login: no longer used. Empty for new accounts; kept so the existing table still loads
+    password_hash = Column(String, nullable=False, default="")
     # Role: "admin" (manages everything), "usuario" (read-only), "profesor" (sees and adjusts their own
     # classes) or "estudiante" (sees only their group's schedule)
     rol = Column(String, nullable=False, default="usuario", server_default="usuario")
     # Plain integer links (no foreign key) so they can be added to an existing table by migrations.py
     profesor_id = Column(Integer, nullable=True)  # profesor accounts: the teacher they belong to
     grupo_id = Column(Integer, nullable=True)  # estudiante accounts: the group they study in
+    # True after the first correct code; until then a token of this account is not accepted.
+    # migrations.py adds it as TRUE for the accounts that existed before the code login.
+    verificado = Column(Boolean, nullable=False, default=False)
+
+    codigos = relationship("VerificationCode", cascade="all, delete-orphan", passive_deletes=True)
+
+
+class VerificationCode(Base):
+    """Six-digit code sent by email. Only its HMAC is stored, and it works once."""
+
+    __tablename__ = "codigos_verificacion"
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, index=True)
+    codigo_hash = Column(String, nullable=False)
+    proposito = Column(String, nullable=False)  # "registro" or "login"
+    vence_en = Column(DateTime(timezone=True), nullable=False)
+    intentos = Column(Integer, nullable=False, default=0)
+    usado = Column(Boolean, nullable=False, default=False)
+    creado_en = Column(DateTime(timezone=True), nullable=False)
 
 
 class Cancellation(Base):
