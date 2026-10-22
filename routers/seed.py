@@ -30,7 +30,7 @@ def load_seed(
         delete_all(db)
 
     summary = DATASETS[dataset](db)
-    sync_accounts(db)  # one account per new teacher, and the demo student in one of the new groups
+    sync_accounts(db)  # one account per new teacher
     return {
         "mensaje": "Datos de demostración cargados. Ahora pulsa 'Generar horario'.",
         "resumen": summary,

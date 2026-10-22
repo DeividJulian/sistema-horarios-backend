@@ -160,12 +160,22 @@ class ScheduleEntryMove(BaseModel):
 
 # Roles (API contract, in Spanish)
 Role = Literal["admin", "usuario", "profesor", "estudiante"]
-Password = Annotated[str, StringConstraints(min_length=8, max_length=128)]
+# Six digits sent by email
+Code = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^\d{6}$")]
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+
+
+class VerifyRequest(BaseModel):
+    email: EmailStr
+    codigo: Code
+
+
+class CodeSent(BaseModel):
+    mensaje: str
+    email: str
 
 
 class UserOut(BaseModel):
@@ -175,14 +185,16 @@ class UserOut(BaseModel):
     rol: Role
     profesor_id: int | None = None
     grupo_id: int | None = None
+    verificado: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class UserCreate(BaseModel):
+    """Administrators create accounts; the person enters with a code sent to that email."""
+
     nombre: Name
     email: EmailStr
-    password: Password
     rol: Role = "usuario"
     profesor_id: int | None = None
     grupo_id: int | None = None
@@ -200,28 +212,12 @@ class UserGroupChange(BaseModel):
     grupo_id: int
 
 
-class PasswordChange(BaseModel):
-    actual: Annotated[str, StringConstraints(min_length=1, max_length=128)]
-    nueva: Password
-
-
 class RegisterRequest(BaseModel):
-    """Self sign-up. Administrators cannot sign themselves up: another administrator creates them."""
+    """Open sign-up, only for students. Teachers already have an account: they just sign in with a code."""
 
-    # Teachers keep the name the administrator registered, so only students give one
-    nombre: Name | None = None
+    nombre: Name
     email: EmailStr
-    password: Password
-    rol: Literal["estudiante", "profesor"]
-    grupo_id: int | None = None
-
-    @model_validator(mode="after")
-    def student_needs_name_and_group(self):
-        if self.rol == "estudiante" and self.nombre is None:
-            raise ValueError("Escribe tu nombre")
-        if self.rol == "estudiante" and self.grupo_id is None:
-            raise ValueError("Elige tu grupo")
-        return self
+    grupo_id: int
 
 
 class RegisterGroup(BaseModel):
@@ -236,14 +232,6 @@ class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
     usuario: UserOut
-
-
-class DemoAccount(BaseModel):
-    rol: Role
-    etiqueta: str
-    descripcion: str
-    email: str
-    password: str
 
 
 # ---------- Changes a teacher can make to their own classes ----------

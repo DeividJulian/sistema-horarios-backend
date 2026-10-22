@@ -14,7 +14,7 @@ from database import Base, SessionLocal, engine, get_db
 from migrations import apply_migrations
 from routers import analysis, auth, availability, class_changes, classrooms, groups, schedules, seed, subjects, teachers, users
 from security import authorize
-from services.users import ensure_default_users
+from services.users import ensure_admin, sync_accounts
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,7 +26,8 @@ logger = logging.getLogger("schedule.api")
 Base.metadata.create_all(bind=engine)
 apply_migrations(engine)
 with SessionLocal() as session:
-    ensure_default_users(session)
+    ensure_admin(session)  # first administrator from ADMIN_EMAIL
+    sync_accounts(session)  # one account per teacher
 
 app = FastAPI(title="Sistema de Horarios y Aulas Universitarias")
 
@@ -38,7 +39,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Public: login. Users: administrators only.
+# Public: sign-up and login with a code sent by email. Users: administrators only.
 app.include_router(auth.router)
 app.include_router(users.router)
 # Teachers cancel their classes or change the classroom; students read their notices

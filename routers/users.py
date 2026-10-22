@@ -1,4 +1,3 @@
-import logging
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -8,10 +7,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import StudentGroup, Teacher, User
 from schemas import UserCreate, UserGroupChange, UserOut
-from security import hash_password, require_admin
-from services.users import initial_password
-
-logger = logging.getLogger("schedule.auth")
+from security import require_admin
 
 # Only administrators manage the accounts
 router = APIRouter(prefix="/users", tags=["Usuarios"])
@@ -42,7 +38,6 @@ def create_user(data: UserCreate, db: Session = Depends(get_db), _: User = Depen
     user = User(
         nombre=data.nombre,
         email=email,
-        password_hash=hash_password(data.password),
         rol=data.rol,
         profesor_id=data.profesor_id if data.rol == "profesor" else None,
         grupo_id=data.grupo_id if data.rol == "estudiante" else None,
@@ -66,24 +61,6 @@ def change_group(user_id: int, data: UserGroupChange, db: Session = Depends(get_
     db.commit()
     db.refresh(user)
     return user
-
-
-@router.post("/{user_id}/reset-password")
-def reset_password(user_id: int, db: Session = Depends(get_db), current: User = Depends(require_admin)):
-    """For someone who forgot their password: it goes back to the initial one of their role.
-
-    A teacher can then sign in with it or activate the account again in «Registrarse» with a password of their own.
-    """
-    user = db.get(User, user_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    if user.id == current.id:
-        raise HTTPException(status_code=409, detail="Tu propia contraseña se cambia desde «Cambiar contraseña».")
-    password = initial_password(user.rol)
-    user.password_hash = hash_password(password)
-    db.commit()
-    logger.info("Password reset by an administrator: %s", user.email)
-    return {"mensaje": f"La contraseña de {user.nombre} volvió a ser la inicial.", "password": password}
 
 
 @router.delete("/{user_id}")

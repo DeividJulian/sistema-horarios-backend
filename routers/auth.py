@@ -1,5 +1,4 @@
 import logging
-import os
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -8,26 +7,29 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import StudentGroup, Teacher, User
-from schemas import DemoAccount, LoginRequest, PasswordChange, RegisterGroup, RegisterRequest, TokenOut, UserOut
-from security import create_token, get_current_user, hash_password, verify_password
-from services.users import DEFAULT_USERS, TEACHER_PASSWORD, demo_teacher
+from schemas import CodeSent, LoginRequest, RegisterGroup, RegisterRequest, TokenOut, UserOut, VerifyRequest
+from security import create_token, get_current_user
+from services.codes import CodeCooldown, InvalidCode, check_code, find_user, issue_code, normalize_email, send_code
+from services.mailer import MailError
 
 logger = logging.getLogger("schedule.auth")
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
-# The login page shows buttons to try every role. Set DEMO_ACCOUNTS=false to hide them in a real deployment.
-SHOW_DEMO_ACCOUNTS = os.getenv("DEMO_ACCOUNTS", "true").lower() != "false"
 
-
-@router.post("/login", response_model=TokenOut)
-def login(data: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(func.lower(User.email) == data.email.lower()).first()
-    if user is None or not verify_password(data.password, user.password_hash):
-        logger.warning("Failed login for %s", data.email)
-        raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
-    logger.info("Login: %s (%s)", user.email, user.rol)
-    return {"access_token": create_token(user), "token_type": "bearer", "usuario": user}
+def _send_new_code(db: Session, user: User, purpose: str) -> None:
+    """Creates and emails the code. If the email doesn't go out, everything is undone (no half-made account)."""
+    try:
+        code = issue_code(db, user, purpose)
+    except CodeCooldown as e:
+        db.rollback()
+        raise HTTPException(status_code=429, detail=str(e), headers={"Retry-After": str(e.seconds)})
+    try:
+        send_code(user, code, purpose)
+    except MailError:
+        db.rollback()
+        raise HTTPException(status_code=502, detail="No pudimos enviar el correo. Inténtalo de nuevo en unos minutos.")
+    db.commit()
 
 
 @router.get("/register-options", response_model=List[RegisterGroup])
@@ -36,85 +38,67 @@ def register_options(db: Session = Depends(get_db)):
     return db.query(StudentGroup).order_by(StudentGroup.nombre).all()
 
 
-@router.post("/register", response_model=TokenOut)
+@router.post("/register", response_model=CodeSent, status_code=201)
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
-    """
-    Students create their account and choose their group. Teachers activate the account that already exists
-    for the email the administrator registered, choosing their own password. Nobody signs up as administrator.
-    """
-    email = data.email.lower()
-    if data.rol == "estudiante":
-        user = _register_student(db, data, email)
-    else:
-        user = _activate_teacher(db, data, email)
-    logger.info("Sign-up: %s (%s)", user.email, user.rol)
-    return {"access_token": create_token(user), "token_type": "bearer", "usuario": user}
+    """Students create their account choosing their group; it stays unverified until they enter the emailed code.
 
-
-def _register_student(db: Session, data: RegisterRequest, email: str) -> User:
-    if db.query(User).filter(func.lower(User.email) == email).first():
+    If the account exists but was never verified, the code is sent again. Nobody signs up as administrator,
+    and teachers already have an account with the email the administrator registered: they just sign in.
+    """
+    email = normalize_email(data.email)
+    user = find_user(db, email)
+    if user and user.verificado:
         raise HTTPException(status_code=409, detail="Ya existe una cuenta con ese correo. Inicia sesión.")
+    if (user and user.rol != "estudiante") or db.query(Teacher).filter(func.lower(Teacher.email) == email).first():
+        raise HTTPException(
+            status_code=409,
+            detail="Ese correo ya tiene una cuenta de profesor o del personal: inicia sesión con él y te enviaremos un código.",
+        )
     if db.get(StudentGroup, data.grupo_id) is None:
         raise HTTPException(status_code=404, detail="El grupo elegido no existe.")
-    user = User(nombre=data.nombre, email=email, password_hash=hash_password(data.password), rol="estudiante", grupo_id=data.grupo_id)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
+    if user:
+        user.nombre = data.nombre
+        user.grupo_id = data.grupo_id
+    else:
+        user = User(nombre=data.nombre, email=email, rol="estudiante", grupo_id=data.grupo_id)
+        db.add(user)
+        db.flush()
+    _send_new_code(db, user, "registro")
+    logger.info("Sign-up: %s (code sent)", email)
+    return {"mensaje": "Te enviamos un código para activar tu cuenta.", "email": user.email}
 
 
-def _activate_teacher(db: Session, data: RegisterRequest, email: str) -> User:
-    teacher = db.query(Teacher).filter(func.lower(Teacher.email) == email).first()
-    if teacher is None:
+@router.post("/login", response_model=CodeSent)
+def login(data: LoginRequest, db: Session = Depends(get_db)):
+    """Emails a one-time code to enter."""
+    user = find_user(db, data.email)
+    if user is None:
         raise HTTPException(
             status_code=404,
-            detail="Ese correo no está registrado como profesor. Pídele al administrador que te agregue en Gestión → Profesores.",
+            detail="No hay una cuenta con ese correo. Si eres estudiante, regístrate; si eres profesor, pide al administrador que te registre.",
         )
-    account = db.query(User).filter(User.profesor_id == teacher.id).first()
-    # The account is created with the shared initial password; once the teacher sets their own, it is taken
-    if account is None or not verify_password(TEACHER_PASSWORD, account.password_hash):
-        raise HTTPException(status_code=409, detail="La cuenta de este profesor ya está activada. Inicia sesión con tu contraseña.")
-    account.password_hash = hash_password(data.password)
+    _send_new_code(db, user, "login")
+    return {"mensaje": "Te enviamos un código para entrar.", "email": user.email}
+
+
+@router.post("/verify", response_model=TokenOut)
+def verify(data: VerifyRequest, db: Session = Depends(get_db)):
+    """Checks the emailed code and returns the session token. The first time it activates the account."""
+    user = find_user(db, data.email)
+    if user is None:
+        raise HTTPException(status_code=400, detail="No hay un código activo: pide uno nuevo.")
+    try:
+        check_code(db, user, data.codigo)
+    except InvalidCode as e:
+        db.commit()  # keeps the failed attempt or the invalidated code
+        raise HTTPException(status_code=400, detail=str(e))
+    user.verificado = True
     db.commit()
-    db.refresh(account)
-    return account
+    db.refresh(user)
+    logger.info("Login: %s (%s)", user.email, user.rol)
+    return {"access_token": create_token(user), "token_type": "bearer", "usuario": user}
 
 
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)):
     return user
-
-
-@router.post("/change-password")
-def change_password(data: PasswordChange, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    if not verify_password(data.actual, user.password_hash):
-        raise HTTPException(status_code=400, detail="La contraseña actual no es correcta.")
-    if data.actual == data.nueva:
-        raise HTTPException(status_code=400, detail="La nueva contraseña debe ser distinta de la actual.")
-    user.password_hash = hash_password(data.nueva)
-    db.commit()
-    logger.info("Password changed: %s", user.email)
-    return {"mensaje": "Contraseña actualizada"}
-
-
-@router.get("/demo-accounts", response_model=List[DemoAccount])
-def demo_accounts(db: Session = Depends(get_db)):
-    """Test accounts for each role (public, so the login page can offer them)."""
-    if not SHOW_DEMO_ACCOUNTS:
-        return []
-    admin, reader, student = DEFAULT_USERS
-    accounts = [
-        {"rol": "admin", "etiqueta": "Administrador", "descripcion": "Gestiona todo", "email": admin["email"], "password": admin["password"]},
-    ]
-    teacher = demo_teacher(db)
-    if teacher is not None:
-        accounts.append(
-            {"rol": "profesor", "etiqueta": "Profesor", "descripcion": teacher.nombre, "email": teacher.email.lower(), "password": TEACHER_PASSWORD}
-        )
-    accounts.append(
-        {"rol": "estudiante", "etiqueta": "Estudiante", "descripcion": "Ve el horario de su grupo", "email": student["email"], "password": student["password"]}
-    )
-    accounts.append(
-        {"rol": "usuario", "etiqueta": "Consulta", "descripcion": "Solo lectura", "email": reader["email"], "password": reader["password"]}
-    )
-    return accounts
