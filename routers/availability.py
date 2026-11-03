@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Teacher, TeacherAvailability
-from schemas import AvailabilityCreate, AvailabilityOut
+from schemas import AvailabilityCreate, AvailabilityOut, MessageOut
 
 router = APIRouter(prefix="/availability", tags=["Disponibilidad"])
 
@@ -31,7 +31,7 @@ def list_availability(teacher_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.delete("/{availability_id}")
+@router.delete("/{availability_id}", response_model=MessageOut)
 def delete_availability(availability_id: int, db: Session = Depends(get_db)):
     availability = (
         db.query(TeacherAvailability)

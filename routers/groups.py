@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import StudentGroup, Subject, User
-from schemas import GroupCreate, GroupOut
+from schemas import GroupCreate, GroupOut, MessageOut
 
 router = APIRouter(prefix="/groups", tags=["Grupos"])
 
@@ -38,7 +38,7 @@ def update_group(group_id: int, data: GroupCreate, db: Session = Depends(get_db)
     return group
 
 
-@router.delete("/{group_id}")
+@router.delete("/{group_id}", response_model=MessageOut)
 def delete_group(group_id: int, db: Session = Depends(get_db)):
     group = db.query(StudentGroup).filter(StudentGroup.id == group_id).first()
     if not group:

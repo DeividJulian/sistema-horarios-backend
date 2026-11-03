@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Classroom, ScheduleEntry
-from schemas import ClassroomCreate, ClassroomOut
+from schemas import ClassroomCreate, ClassroomOut, MessageOut
 
 router = APIRouter(prefix="/classrooms", tags=["Aulas"])
 
@@ -52,7 +52,7 @@ def update_classroom(classroom_id: int, data: ClassroomCreate, db: Session = Dep
     return classroom
 
 
-@router.delete("/{classroom_id}")
+@router.delete("/{classroom_id}", response_model=MessageOut)
 def delete_classroom(classroom_id: int, db: Session = Depends(get_db)):
     classroom = db.query(Classroom).filter(Classroom.id == classroom_id).first()
     if not classroom:

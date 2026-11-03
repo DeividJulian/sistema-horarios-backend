@@ -13,6 +13,7 @@ import models  # noqa: F401  (registers the tables on Base)
 from database import Base, SessionLocal, engine, get_db
 from migrations import apply_migrations
 from routers import ai, analysis, auth, availability, class_changes, classrooms, groups, schedules, seed, subjects, teachers, users
+from schemas import ErrorOut, HealthOut, RootOut
 from security import authorize
 from services.users import ensure_admin, sync_accounts
 
@@ -29,7 +30,27 @@ with SessionLocal() as session:
     ensure_admin(session)  # first administrator from ADMIN_EMAIL
     sync_accounts(session)  # one account per teacher
 
+# Error codes each group of routes can answer, all with the shape {"detail": "text"} (see the handlers below)
+ERROR_TEXT = {
+    400: "Solicitud incorrecta (por ejemplo, un código de verificación inválido o vencido)",
+    401: "Sin sesión, o token inválido o vencido",
+    403: "El rol del usuario no permite esta acción",
+    404: "El recurso no existe",
+    409: "Conflicto con los datos actuales (duplicado, cruce de horario, etc.)",
+    422: "Datos de entrada inválidos",
+    429: "Demasiadas solicitudes (espera entre códigos o límite de la IA)",
+    500: "Error interno de la base de datos",
+    502: "Falló un servicio externo (correo o IA)",
+    503: "La IA no está configurada en el servidor",
+}
+
+
+def errors(*codes: int) -> dict:
+    return {code: {"model": ErrorOut, "description": ERROR_TEXT[code]} for code in codes}
+
+
 app = FastAPI(
+    responses=errors(500),
     title="Sistema de Horarios y Aulas Universitarias",
     version="2.0.0",
     description=(
@@ -48,16 +69,16 @@ app.add_middleware(
 )
 
 # Public: sign-up and login with a code sent by email. Users: administrators only.
-app.include_router(auth.router)
-app.include_router(users.router)
+app.include_router(auth.router, responses=errors(400, 401, 404, 409, 422, 429, 502))
+app.include_router(users.router, responses=errors(401, 403, 404, 409, 422))
 # Teachers cancel their classes or change the classroom; students read their notices
-app.include_router(class_changes.router)
+app.include_router(class_changes.router, responses=errors(401, 403, 404, 409, 422))
 # The AI advises (conflicts, notices); it never changes data by itself
-app.include_router(ai.router)
+app.include_router(ai.router, responses=errors(401, 403, 404, 422, 429, 502, 503))
 
 # Data: every signed-in user can read, only administrators can create, edit, delete or generate
 for data_router in (teachers, availability, classrooms, groups, subjects, schedules, analysis, seed):
-    app.include_router(data_router.router, dependencies=[Depends(authorize)])
+    app.include_router(data_router.router, dependencies=[Depends(authorize)], responses=errors(401, 403, 404, 409, 422))
 
 
 # ---------- LOGGING: every request is logged with method, path, status code and duration ----------
@@ -102,12 +123,12 @@ async def handle_database_error(request: Request, exc: SQLAlchemyError):
     )
 
 
-@app.get("/")
+@app.get("/", response_model=RootOut)
 def root():
     return {"mensaje": "API Sistema de Horarios funcionando"}
 
 
-@app.get("/health")
+@app.get("/health", response_model=HealthOut)
 def health(db: Session = Depends(get_db)):
     db.execute(text("SELECT 1"))
     return {"estado": "ok", "base_de_datos": "conectada"}

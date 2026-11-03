@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Classroom, ScheduleEntry, Subject, Teacher, User
-from schemas import ScheduleEntryMove, ScheduleEntryOut
+from schemas import GenerationOut, MessageOut, ScheduleEntryMove, ScheduleEntryOut
 from security import get_current_user
 from services.class_changes import delete_cancellations, describe, notify_group
 from services.csp import SHIFT_LABELS, classroom_fits, compute_assignments, shift_range
@@ -19,7 +19,7 @@ logger = logging.getLogger("schedule.generation")
 router = APIRouter(tags=["Horarios"])
 
 
-@router.post("/schedules/generate")
+@router.post("/schedules/generate", response_model=GenerationOut)
 def generate_schedule(db: Session = Depends(get_db)):
     started = clock.perf_counter()
     optimization = {}
@@ -46,7 +46,7 @@ def generate_schedule(db: Session = Depends(get_db)):
         "Schedule generated: %d blocks in %.2f s (idle hours %s -> %s)",
         len(assignments), elapsed, optimization.get("horas_muertas_antes"), optimization.get("horas_muertas_despues"),
     )
-    return {"mensaje": "Horario generado exitosamente", "total_bloques": len(assignments), "optimizacion": optimization}
+    return {"mensaje": "Horario generado exitosamente", "total_bloques": len(assignments), "optimizacion": optimization or None}
 
 
 @router.get("/schedules", response_model=List[ScheduleEntryOut])
@@ -166,7 +166,7 @@ def move_entry(entry_id: int, data: ScheduleEntryMove, db: Session = Depends(get
     return entry
 
 
-@router.delete("/schedules/{entry_id}")
+@router.delete("/schedules/{entry_id}", response_model=MessageOut)
 def delete_entry(entry_id: int, db: Session = Depends(get_db)):
     entry = db.query(ScheduleEntry).filter(ScheduleEntry.id == entry_id).first()
     if not entry:

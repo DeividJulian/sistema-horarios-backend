@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Subject, Teacher
-from schemas import TeacherCreate, TeacherOut
+from schemas import MessageOut, TeacherCreate, TeacherOut
 from services.users import sync_accounts
 
 router = APIRouter(prefix="/teachers", tags=["Profesores"])
@@ -54,7 +54,7 @@ def update_teacher(teacher_id: int, data: TeacherCreate, db: Session = Depends(g
     return teacher
 
 
-@router.delete("/{teacher_id}")
+@router.delete("/{teacher_id}", response_model=MessageOut)
 def delete_teacher(teacher_id: int, db: Session = Depends(get_db)):
     teacher = db.query(Teacher).filter(Teacher.id == teacher_id).first()
     if not teacher:

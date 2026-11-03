@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import StudentGroup, Teacher, User
-from schemas import UserCreate, UserGroupChange, UserOut
+from schemas import MessageOut, UserCreate, UserGroupChange, UserOut
 from security import require_admin
 
 # Only administrators manage the accounts
@@ -63,7 +63,7 @@ def change_group(user_id: int, data: UserGroupChange, db: Session = Depends(get_
     return user
 
 
-@router.delete("/{user_id}")
+@router.delete("/{user_id}", response_model=MessageOut)
 def delete_user(user_id: int, db: Session = Depends(get_db), current: User = Depends(require_admin)):
     user = db.get(User, user_id)
     if user is None:

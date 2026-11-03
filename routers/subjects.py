@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from services.class_changes import delete_cancellations
 from models import ScheduleEntry, StudentGroup, Subject, Teacher
-from schemas import SubjectCreate, SubjectOut
+from schemas import MessageOut, SubjectCreate, SubjectOut
 
 router = APIRouter(prefix="/subjects", tags=["Materias"])
 
@@ -51,7 +51,7 @@ def update_subject(subject_id: int, data: SubjectCreate, db: Session = Depends(g
     return subject
 
 
-@router.delete("/{subject_id}")
+@router.delete("/{subject_id}", response_model=MessageOut)
 def delete_subject(subject_id: int, db: Session = Depends(get_db)):
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:

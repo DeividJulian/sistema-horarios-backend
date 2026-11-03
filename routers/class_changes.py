@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Cancellation, Notification, ScheduleEntry, Subject, User
-from schemas import CancellationCreate, CancellationOut, ClassroomChange, NotificationOut, ScheduleEntryOut
+from schemas import CancellationCreate, CancellationOut, ClassroomChange, MessageOut, NotificationOut, ScheduleEntryOut
 from security import get_current_user
 from services.class_changes import cancel_class, change_classroom, get_entry_for_change, restore_class, today
 
@@ -26,7 +26,7 @@ def create_cancellation(
     return cancel_class(db, entry, data.fecha, data.motivo, user, data.aviso)
 
 
-@router.delete("/cancellations/{cancellation_id}")
+@router.delete("/cancellations/{cancellation_id}", response_model=MessageOut)
 def delete_cancellation(cancellation_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     cancellation = db.get(Cancellation, cancellation_id)
     if cancellation is None:

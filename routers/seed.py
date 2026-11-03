@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
+from schemas import BackupInfo, MessageOut, RestoreOut, SeedOut
 from services.backup import backup_info, discard_backup, restore_backup, save_backup
 from services.seed import delete_all, has_data, load_demo_data, load_faculty_data
 from services.users import sync_accounts
@@ -11,7 +12,7 @@ router = APIRouter(tags=["Datos de demostración"])
 DATASETS = {"demo": load_demo_data, "faculty": load_faculty_data}
 
 
-@router.post("/seed")
+@router.post("/seed", response_model=SeedOut, response_model_exclude_none=True)
 def load_seed(
     reset: bool = False,
     # "demo" (small) or "faculty" (8 semesters of Software Engineering)
@@ -38,13 +39,13 @@ def load_seed(
     }
 
 
-@router.get("/seed/backup")
+@router.get("/seed/backup", response_model=BackupInfo, response_model_exclude_none=True)
 def get_backup(db: Session = Depends(get_db)):
     """Whether there is a copy of the data replaced by the demo, when it was taken and what it holds."""
     return backup_info(db)
 
 
-@router.post("/seed/restore")
+@router.post("/seed/restore", response_model=RestoreOut)
 def restore(db: Session = Depends(get_db)):
     """Goes back to the data that was there before loading the demo."""
     summary = restore_backup(db)
@@ -53,7 +54,7 @@ def restore(db: Session = Depends(get_db)):
     return {"mensaje": "Tus datos volvieron a como estaban antes de cargar la demostración.", "resumen": summary}
 
 
-@router.delete("/seed/backup")
+@router.delete("/seed/backup", response_model=MessageOut)
 def delete_backup(db: Session = Depends(get_db)):
     """Keeps the demo data and forgets the copy."""
     discard_backup(db)
