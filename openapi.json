@@ -70,6 +70,13 @@
       "AvailabilityOut": {
         "properties": {
           "dia_semana": {
+            "enum": [
+              "Lunes",
+              "Martes",
+              "Miércoles",
+              "Jueves",
+              "Viernes"
+            ],
             "title": "Dia Semana",
             "type": "string"
           },
@@ -306,6 +313,11 @@
             "type": "string"
           },
           "tipo": {
+            "enum": [
+              "general",
+              "informatica",
+              "laboratorio"
+            ],
             "title": "Tipo",
             "type": "string"
           }
@@ -678,6 +690,12 @@
             "type": "integer"
           },
           "jornada": {
+            "enum": [
+              "todo",
+              "manana",
+              "tarde",
+              "noche"
+            ],
             "title": "Jornada",
             "type": "string"
           },
@@ -871,6 +889,12 @@
             "type": "string"
           },
           "tipo": {
+            "enum": [
+              "cancelacion",
+              "restablecida",
+              "cambio_aula",
+              "cambio_horario"
+            ],
             "title": "Tipo",
             "type": "string"
           },
@@ -994,6 +1018,12 @@
             "type": "integer"
           },
           "jornada": {
+            "enum": [
+              "todo",
+              "manana",
+              "tarde",
+              "noche"
+            ],
             "title": "Jornada",
             "type": "string"
           },
@@ -1111,6 +1141,13 @@
             "type": "integer"
           },
           "dia_semana": {
+            "enum": [
+              "Lunes",
+              "Martes",
+              "Miércoles",
+              "Jueves",
+              "Viernes"
+            ],
             "title": "Dia Semana",
             "type": "string"
           },
@@ -1305,6 +1342,11 @@
             "type": "integer"
           },
           "tipo_aula": {
+            "enum": [
+              "cualquiera",
+              "informatica",
+              "laboratorio"
+            ],
             "title": "Tipo Aula",
             "type": "string"
           }

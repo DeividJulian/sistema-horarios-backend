@@ -74,7 +74,7 @@ class AvailabilityCreate(BaseModel):
 class AvailabilityOut(BaseModel):
     id: int
     profesor_id: int
-    dia_semana: str
+    dia_semana: Weekday
     hora_inicio: time
     hora_fin: time
 
@@ -91,7 +91,7 @@ class ClassroomOut(BaseModel):
     id: int
     nombre: str
     aforo: int
-    tipo: str
+    tipo: RoomType
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -106,7 +106,7 @@ class GroupOut(BaseModel):
     id: int
     nombre: str
     num_estudiantes: int
-    jornada: str
+    jornada: Shift
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -125,7 +125,7 @@ class SubjectOut(BaseModel):
     intensidad_horaria: int
     grupo_id: int
     profesor_id: int
-    tipo_aula: str
+    tipo_aula: RequiredRoomType
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -134,7 +134,7 @@ class ScheduleEntryOut(BaseModel):
     id: int
     materia_id: int
     aula_id: int
-    dia_semana: str
+    dia_semana: Weekday
     hora_inicio: time
     hora_fin: time
 
@@ -225,7 +225,7 @@ class RegisterRequest(BaseModel):
 class RegisterGroup(BaseModel):
     id: int
     nombre: str
-    jornada: str
+    jornada: Shift
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -262,12 +262,16 @@ class ClassroomChange(BaseModel):
     aviso: NoticeText | None = None
 
 
+# Kind of notice a group receives (API contract, in Spanish)
+NotificationKind = Literal["cancelacion", "restablecida", "cambio_aula", "cambio_horario"]
+
+
 class NotificationOut(BaseModel):
     id: int
     grupo_id: int
     materia_id: int | None
     horario_id: int | None
-    tipo: str
+    tipo: NotificationKind
     titulo: str
     mensaje: str
     creada_en: datetime
