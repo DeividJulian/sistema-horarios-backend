@@ -29,7 +29,15 @@ with SessionLocal() as session:
     ensure_admin(session)  # first administrator from ADMIN_EMAIL
     sync_accounts(session)  # one account per teacher
 
-app = FastAPI(title="Sistema de Horarios y Aulas Universitarias")
+app = FastAPI(
+    title="Sistema de Horarios y Aulas Universitarias",
+    version="2.0.0",
+    description=(
+        "API REST del sistema de horarios. El contrato versionado vive en openapi.json "
+        "(se regenera con scripts/export_openapi.py). Autenticación: token JWT en la cabecera "
+        "Authorization: Bearer <token>, obtenido con POST /auth/verify."
+    ),
+)
 
 app.add_middleware(
     CORSMiddleware,

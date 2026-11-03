@@ -1,0 +1,3188 @@
+{
+  "components": {
+    "schemas": {
+      "AIStatus": {
+        "properties": {
+          "configurada": {
+            "title": "Configurada",
+            "type": "boolean"
+          },
+          "modelo": {
+            "title": "Modelo",
+            "type": "string"
+          },
+          "nombre_proveedor": {
+            "title": "Nombre Proveedor",
+            "type": "string"
+          },
+          "proveedor": {
+            "title": "Proveedor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "configurada",
+          "proveedor",
+          "nombre_proveedor",
+          "modelo"
+        ],
+        "title": "AIStatus",
+        "type": "object"
+      },
+      "AvailabilityCreate": {
+        "properties": {
+          "dia_semana": {
+            "enum": [
+              "Lunes",
+              "Martes",
+              "Miércoles",
+              "Jueves",
+              "Viernes"
+            ],
+            "title": "Dia Semana",
+            "type": "string"
+          },
+          "hora_fin": {
+            "format": "time",
+            "title": "Hora Fin",
+            "type": "string"
+          },
+          "hora_inicio": {
+            "format": "time",
+            "title": "Hora Inicio",
+            "type": "string"
+          },
+          "profesor_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Profesor Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "profesor_id",
+          "dia_semana",
+          "hora_inicio",
+          "hora_fin"
+        ],
+        "title": "AvailabilityCreate",
+        "type": "object"
+      },
+      "AvailabilityOut": {
+        "properties": {
+          "dia_semana": {
+            "title": "Dia Semana",
+            "type": "string"
+          },
+          "hora_fin": {
+            "format": "time",
+            "title": "Hora Fin",
+            "type": "string"
+          },
+          "hora_inicio": {
+            "format": "time",
+            "title": "Hora Inicio",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "profesor_id": {
+            "title": "Profesor Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "profesor_id",
+          "dia_semana",
+          "hora_inicio",
+          "hora_fin"
+        ],
+        "title": "AvailabilityOut",
+        "type": "object"
+      },
+      "CancellationCreate": {
+        "properties": {
+          "aviso": {
+            "anyOf": [
+              {
+                "maxLength": 600,
+                "minLength": 10,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aviso"
+          },
+          "fecha": {
+            "format": "date",
+            "title": "Fecha",
+            "type": "string"
+          },
+          "motivo": {
+            "maxLength": 200,
+            "minLength": 3,
+            "title": "Motivo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fecha",
+          "motivo"
+        ],
+        "title": "CancellationCreate",
+        "type": "object"
+      },
+      "CancellationOut": {
+        "properties": {
+          "fecha": {
+            "format": "date",
+            "title": "Fecha",
+            "type": "string"
+          },
+          "horario_id": {
+            "title": "Horario Id",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "motivo": {
+            "title": "Motivo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "horario_id",
+          "fecha",
+          "motivo"
+        ],
+        "title": "CancellationOut",
+        "type": "object"
+      },
+      "ClassroomChange": {
+        "properties": {
+          "aula_id": {
+            "title": "Aula Id",
+            "type": "integer"
+          },
+          "aviso": {
+            "anyOf": [
+              {
+                "maxLength": 600,
+                "minLength": 10,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aviso"
+          }
+        },
+        "required": [
+          "aula_id"
+        ],
+        "title": "ClassroomChange",
+        "type": "object"
+      },
+      "ClassroomCreate": {
+        "properties": {
+          "aforo": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Aforo",
+            "type": "integer"
+          },
+          "nombre": {
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Nombre",
+            "type": "string"
+          },
+          "tipo": {
+            "default": "general",
+            "enum": [
+              "general",
+              "informatica",
+              "laboratorio"
+            ],
+            "title": "Tipo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nombre",
+          "aforo"
+        ],
+        "title": "ClassroomCreate",
+        "type": "object"
+      },
+      "ClassroomOut": {
+        "properties": {
+          "aforo": {
+            "title": "Aforo",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "aforo",
+          "tipo"
+        ],
+        "title": "ClassroomOut",
+        "type": "object"
+      },
+      "CodeSent": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "mensaje": {
+            "title": "Mensaje",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mensaje",
+          "email"
+        ],
+        "title": "CodeSent",
+        "type": "object"
+      },
+      "ConflictOption": {
+        "properties": {
+          "aforo": {
+            "title": "Aforo",
+            "type": "integer"
+          },
+          "aula": {
+            "title": "Aula",
+            "type": "string"
+          },
+          "aula_id": {
+            "title": "Aula Id",
+            "type": "integer"
+          },
+          "dia_semana": {
+            "title": "Dia Semana",
+            "type": "string"
+          },
+          "hora_inicio": {
+            "format": "time",
+            "title": "Hora Inicio",
+            "type": "string"
+          },
+          "horas_muertas_grupo": {
+            "title": "Horas Muertas Grupo",
+            "type": "integer"
+          },
+          "horas_muertas_profesor": {
+            "title": "Horas Muertas Profesor",
+            "type": "integer"
+          },
+          "indice": {
+            "title": "Indice",
+            "type": "integer"
+          },
+          "misma_aula": {
+            "title": "Misma Aula",
+            "type": "boolean"
+          },
+          "mismo_dia": {
+            "title": "Mismo Dia",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "indice",
+          "dia_semana",
+          "hora_inicio",
+          "aula_id",
+          "aula",
+          "aforo",
+          "horas_muertas_grupo",
+          "horas_muertas_profesor",
+          "mismo_dia",
+          "misma_aula"
+        ],
+        "title": "ConflictOption",
+        "type": "object"
+      },
+      "ConflictSuggestion": {
+        "properties": {
+          "conflictos": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Conflictos",
+            "type": "array"
+          },
+          "explicacion": {
+            "title": "Explicacion",
+            "type": "string"
+          },
+          "horario_id": {
+            "title": "Horario Id",
+            "type": "integer"
+          },
+          "modelo": {
+            "title": "Modelo",
+            "type": "string"
+          },
+          "motivos": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Motivos",
+            "type": "array"
+          },
+          "opciones": {
+            "items": {
+              "$ref": "#/components/schemas/ConflictOption"
+            },
+            "title": "Opciones",
+            "type": "array"
+          },
+          "proveedor": {
+            "title": "Proveedor",
+            "type": "string"
+          },
+          "recomendada": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recomendada"
+          }
+        },
+        "required": [
+          "horario_id",
+          "conflictos",
+          "opciones",
+          "recomendada",
+          "explicacion",
+          "motivos",
+          "proveedor",
+          "modelo"
+        ],
+        "title": "ConflictSuggestion",
+        "type": "object"
+      },
+      "GroupCreate": {
+        "properties": {
+          "jornada": {
+            "default": "todo",
+            "enum": [
+              "todo",
+              "manana",
+              "tarde",
+              "noche"
+            ],
+            "title": "Jornada",
+            "type": "string"
+          },
+          "nombre": {
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Nombre",
+            "type": "string"
+          },
+          "num_estudiantes": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Num Estudiantes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "nombre",
+          "num_estudiantes"
+        ],
+        "title": "GroupCreate",
+        "type": "object"
+      },
+      "GroupOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "jornada": {
+            "title": "Jornada",
+            "type": "string"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          },
+          "num_estudiantes": {
+            "title": "Num Estudiantes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "num_estudiantes",
+          "jornada"
+        ],
+        "title": "GroupOut",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "LoginRequest",
+        "type": "object"
+      },
+      "NoticeDraftOut": {
+        "properties": {
+          "mensaje": {
+            "title": "Mensaje",
+            "type": "string"
+          },
+          "modelo": {
+            "title": "Modelo",
+            "type": "string"
+          },
+          "proveedor": {
+            "title": "Proveedor",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "titulo",
+          "mensaje",
+          "proveedor",
+          "modelo"
+        ],
+        "title": "NoticeDraftOut",
+        "type": "object"
+      },
+      "NoticeDraftRequest": {
+        "properties": {
+          "aula_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aula Id"
+          },
+          "fecha": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fecha"
+          },
+          "horario_id": {
+            "title": "Horario Id",
+            "type": "integer"
+          },
+          "motivo": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Motivo"
+          },
+          "tipo": {
+            "enum": [
+              "cancelacion",
+              "cambio_aula"
+            ],
+            "title": "Tipo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "horario_id",
+          "tipo"
+        ],
+        "title": "NoticeDraftRequest",
+        "type": "object"
+      },
+      "NotificationOut": {
+        "properties": {
+          "creada_en": {
+            "format": "date-time",
+            "title": "Creada En",
+            "type": "string"
+          },
+          "grupo_id": {
+            "title": "Grupo Id",
+            "type": "integer"
+          },
+          "horario_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Horario Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "materia_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Materia Id"
+          },
+          "mensaje": {
+            "title": "Mensaje",
+            "type": "string"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "grupo_id",
+          "materia_id",
+          "horario_id",
+          "tipo",
+          "titulo",
+          "mensaje",
+          "creada_en"
+        ],
+        "title": "NotificationOut",
+        "type": "object"
+      },
+      "RegisterGroup": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "jornada": {
+            "title": "Jornada",
+            "type": "string"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "jornada"
+        ],
+        "title": "RegisterGroup",
+        "type": "object"
+      },
+      "RegisterRequest": {
+        "description": "Open sign-up, only for students. Teachers already have an account: they just sign in with a code.",
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "grupo_id": {
+            "title": "Grupo Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nombre",
+          "email",
+          "grupo_id"
+        ],
+        "title": "RegisterRequest",
+        "type": "object"
+      },
+      "ScheduleEntryMove": {
+        "properties": {
+          "aula_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aula Id"
+          },
+          "dia_semana": {
+            "enum": [
+              "Lunes",
+              "Martes",
+              "Miércoles",
+              "Jueves",
+              "Viernes"
+            ],
+            "title": "Dia Semana",
+            "type": "string"
+          },
+          "hora_inicio": {
+            "format": "time",
+            "title": "Hora Inicio",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dia_semana",
+          "hora_inicio"
+        ],
+        "title": "ScheduleEntryMove",
+        "type": "object"
+      },
+      "ScheduleEntryOut": {
+        "properties": {
+          "aula_id": {
+            "title": "Aula Id",
+            "type": "integer"
+          },
+          "dia_semana": {
+            "title": "Dia Semana",
+            "type": "string"
+          },
+          "hora_fin": {
+            "format": "time",
+            "title": "Hora Fin",
+            "type": "string"
+          },
+          "hora_inicio": {
+            "format": "time",
+            "title": "Hora Inicio",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "materia_id": {
+            "title": "Materia Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "materia_id",
+          "aula_id",
+          "dia_semana",
+          "hora_inicio",
+          "hora_fin"
+        ],
+        "title": "ScheduleEntryOut",
+        "type": "object"
+      },
+      "SubjectCreate": {
+        "properties": {
+          "grupo_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Grupo Id",
+            "type": "integer"
+          },
+          "intensidad_horaria": {
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Intensidad Horaria",
+            "type": "integer"
+          },
+          "nombre": {
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Nombre",
+            "type": "string"
+          },
+          "profesor_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Profesor Id",
+            "type": "integer"
+          },
+          "tipo_aula": {
+            "default": "cualquiera",
+            "enum": [
+              "cualquiera",
+              "informatica",
+              "laboratorio"
+            ],
+            "title": "Tipo Aula",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nombre",
+          "intensidad_horaria",
+          "grupo_id",
+          "profesor_id"
+        ],
+        "title": "SubjectCreate",
+        "type": "object"
+      },
+      "SubjectOut": {
+        "properties": {
+          "grupo_id": {
+            "title": "Grupo Id",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "intensidad_horaria": {
+            "title": "Intensidad Horaria",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          },
+          "profesor_id": {
+            "title": "Profesor Id",
+            "type": "integer"
+          },
+          "tipo_aula": {
+            "title": "Tipo Aula",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "intensidad_horaria",
+          "grupo_id",
+          "profesor_id",
+          "tipo_aula"
+        ],
+        "title": "SubjectOut",
+        "type": "object"
+      },
+      "TeacherCreate": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "nombre": {
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nombre",
+          "email"
+        ],
+        "title": "TeacherCreate",
+        "type": "object"
+      },
+      "TeacherOut": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "email"
+        ],
+        "title": "TeacherOut",
+        "type": "object"
+      },
+      "TokenOut": {
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "token_type": {
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          },
+          "usuario": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "required": [
+          "access_token",
+          "usuario"
+        ],
+        "title": "TokenOut",
+        "type": "object"
+      },
+      "UserCreate": {
+        "description": "Administrators create accounts; the person enters with a code sent to that email.",
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "grupo_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grupo Id"
+          },
+          "nombre": {
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Nombre",
+            "type": "string"
+          },
+          "profesor_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profesor Id"
+          },
+          "rol": {
+            "default": "usuario",
+            "enum": [
+              "admin",
+              "usuario",
+              "profesor",
+              "estudiante"
+            ],
+            "title": "Rol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nombre",
+          "email"
+        ],
+        "title": "UserCreate",
+        "type": "object"
+      },
+      "UserGroupChange": {
+        "properties": {
+          "grupo_id": {
+            "title": "Grupo Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "grupo_id"
+        ],
+        "title": "UserGroupChange",
+        "type": "object"
+      },
+      "UserOut": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "grupo_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grupo Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          },
+          "profesor_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profesor Id"
+          },
+          "rol": {
+            "enum": [
+              "admin",
+              "usuario",
+              "profesor",
+              "estudiante"
+            ],
+            "title": "Rol",
+            "type": "string"
+          },
+          "verificado": {
+            "default": false,
+            "title": "Verificado",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "email",
+          "rol"
+        ],
+        "title": "UserOut",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "VerifyRequest": {
+        "properties": {
+          "codigo": {
+            "pattern": "^\\d{6}$",
+            "title": "Codigo",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "codigo"
+        ],
+        "title": "VerifyRequest",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "API REST del sistema de horarios. El contrato versionado vive en openapi.json (se regenera con scripts/export_openapi.py). Autenticación: token JWT en la cabecera Authorization: Bearer <token>, obtenido con POST /auth/verify.",
+    "title": "Sistema de Horarios y Aulas Universitarias",
+    "version": "2.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Root"
+      }
+    },
+    "/ai/conflicts/{entry_id}/suggestion": {
+      "post": {
+        "description": "Valid slots and classrooms for a conflicting class, with the AI's recommendation. Nothing is moved.",
+        "operationId": "conflict_suggestion_ai_conflicts__entry_id__suggestion_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictSuggestion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Conflict Suggestion",
+        "tags": [
+          "IA"
+        ]
+      }
+    },
+    "/ai/notices/draft": {
+      "post": {
+        "description": "Draft of the notice for the students; the teacher reviews it before cancelling or changing the classroom.",
+        "operationId": "notice_draft_ai_notices_draft_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoticeDraftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoticeDraftOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Notice Draft",
+        "tags": [
+          "IA"
+        ]
+      }
+    },
+    "/ai/status": {
+      "get": {
+        "description": "Whether the AI is configured, with which provider and model (the frontend shows the provider named here).",
+        "operationId": "ai_status_ai_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ai Status",
+        "tags": [
+          "IA"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "description": "Emails a one-time code to enter.",
+        "operationId": "login_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeSent"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Login",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "me_auth_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Me",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "description": "Students create their account choosing their group; it stays unverified until they enter the emailed code.\n\nIf the account exists but was never verified, the code is sent again. Nobody signs up as administrator,\nand teachers already have an account with the email the administrator registered: they just sign in.",
+        "operationId": "register_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeSent"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/auth/register-options": {
+      "get": {
+        "description": "Groups a student can choose when signing up (public: the sign-up form needs them).",
+        "operationId": "register_options_auth_register_options_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RegisterGroup"
+                  },
+                  "title": "Response Register Options Auth Register Options Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Register Options",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/auth/verify": {
+      "post": {
+        "description": "Checks the emailed code and returns the session token. The first time it activates the account.",
+        "operationId": "verify_auth_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/availability": {
+      "post": {
+        "operationId": "create_availability_availability_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Availability",
+        "tags": [
+          "Disponibilidad"
+        ]
+      }
+    },
+    "/availability/{availability_id}": {
+      "delete": {
+        "operationId": "delete_availability_availability__availability_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "availability_id",
+            "required": true,
+            "schema": {
+              "title": "Availability Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Availability",
+        "tags": [
+          "Disponibilidad"
+        ]
+      }
+    },
+    "/availability/{teacher_id}": {
+      "get": {
+        "operationId": "list_availability_availability__teacher_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teacher_id",
+            "required": true,
+            "schema": {
+              "title": "Teacher Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AvailabilityOut"
+                  },
+                  "title": "Response List Availability Availability  Teacher Id  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Availability",
+        "tags": [
+          "Disponibilidad"
+        ]
+      }
+    },
+    "/cancellations": {
+      "get": {
+        "description": "Cancellations from last week on (enough to draw this week and the next ones).",
+        "operationId": "list_cancellations_cancellations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CancellationOut"
+                  },
+                  "title": "Response List Cancellations Cancellations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Cancellations",
+        "tags": [
+          "Cambios de clase y avisos"
+        ]
+      }
+    },
+    "/cancellations/{cancellation_id}": {
+      "delete": {
+        "operationId": "delete_cancellation_cancellations__cancellation_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cancellation_id",
+            "required": true,
+            "schema": {
+              "title": "Cancellation Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Cancellation",
+        "tags": [
+          "Cambios de clase y avisos"
+        ]
+      }
+    },
+    "/classrooms": {
+      "get": {
+        "operationId": "list_classrooms_classrooms_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClassroomOut"
+                  },
+                  "title": "Response List Classrooms Classrooms Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Classrooms",
+        "tags": [
+          "Aulas"
+        ]
+      },
+      "post": {
+        "operationId": "create_classroom_classrooms_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassroomCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassroomOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Classroom",
+        "tags": [
+          "Aulas"
+        ]
+      }
+    },
+    "/classrooms/{classroom_id}": {
+      "delete": {
+        "operationId": "delete_classroom_classrooms__classroom_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "classroom_id",
+            "required": true,
+            "schema": {
+              "title": "Classroom Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Classroom",
+        "tags": [
+          "Aulas"
+        ]
+      },
+      "put": {
+        "operationId": "update_classroom_classrooms__classroom_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "classroom_id",
+            "required": true,
+            "schema": {
+              "title": "Classroom Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassroomCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassroomOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Classroom",
+        "tags": [
+          "Aulas"
+        ]
+      }
+    },
+    "/conflicts": {
+      "get": {
+        "operationId": "get_conflicts_conflicts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Conflicts",
+        "tags": [
+          "Análisis"
+        ]
+      }
+    },
+    "/diagnostics": {
+      "get": {
+        "description": "What would stop the generator, in plain language and with the section where it is fixed.",
+        "operationId": "get_readiness_diagnostics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Readiness",
+        "tags": [
+          "Análisis"
+        ]
+      }
+    },
+    "/groups": {
+      "get": {
+        "operationId": "list_groups_groups_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GroupOut"
+                  },
+                  "title": "Response List Groups Groups Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Groups",
+        "tags": [
+          "Grupos"
+        ]
+      },
+      "post": {
+        "operationId": "create_group_groups_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Group",
+        "tags": [
+          "Grupos"
+        ]
+      }
+    },
+    "/groups/{group_id}": {
+      "delete": {
+        "operationId": "delete_group_groups__group_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "title": "Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Group",
+        "tags": [
+          "Grupos"
+        ]
+      },
+      "put": {
+        "operationId": "update_group_groups__group_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "title": "Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Group",
+        "tags": [
+          "Grupos"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/notifications": {
+      "get": {
+        "description": "Students: their group's notices. Teachers: the ones about their subjects. Others: all of them.",
+        "operationId": "list_notifications_notifications_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationOut"
+                  },
+                  "title": "Response List Notifications Notifications Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Notifications",
+        "tags": [
+          "Cambios de clase y avisos"
+        ]
+      }
+    },
+    "/schedules": {
+      "get": {
+        "operationId": "list_schedule_schedules_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduleEntryOut"
+                  },
+                  "title": "Response List Schedule Schedules Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Schedule",
+        "tags": [
+          "Horarios"
+        ]
+      }
+    },
+    "/schedules/classroom/{classroom_id}": {
+      "get": {
+        "operationId": "schedule_by_classroom_schedules_classroom__classroom_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "classroom_id",
+            "required": true,
+            "schema": {
+              "title": "Classroom Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduleEntryOut"
+                  },
+                  "title": "Response Schedule By Classroom Schedules Classroom  Classroom Id  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Schedule By Classroom",
+        "tags": [
+          "Horarios"
+        ]
+      }
+    },
+    "/schedules/generate": {
+      "post": {
+        "operationId": "generate_schedule_schedules_generate_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Generate Schedule",
+        "tags": [
+          "Horarios"
+        ]
+      }
+    },
+    "/schedules/group/{group_id}": {
+      "get": {
+        "operationId": "schedule_by_group_schedules_group__group_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "title": "Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduleEntryOut"
+                  },
+                  "title": "Response Schedule By Group Schedules Group  Group Id  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Schedule By Group",
+        "tags": [
+          "Horarios"
+        ]
+      }
+    },
+    "/schedules/teacher/{teacher_id}": {
+      "get": {
+        "operationId": "schedule_by_teacher_schedules_teacher__teacher_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teacher_id",
+            "required": true,
+            "schema": {
+              "title": "Teacher Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduleEntryOut"
+                  },
+                  "title": "Response Schedule By Teacher Schedules Teacher  Teacher Id  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Schedule By Teacher",
+        "tags": [
+          "Horarios"
+        ]
+      }
+    },
+    "/schedules/{entry_id}": {
+      "delete": {
+        "operationId": "delete_entry_schedules__entry_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Entry",
+        "tags": [
+          "Horarios"
+        ]
+      },
+      "put": {
+        "operationId": "move_entry_schedules__entry_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleEntryMove"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleEntryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Move Entry",
+        "tags": [
+          "Horarios"
+        ]
+      }
+    },
+    "/schedules/{entry_id}/cancellations": {
+      "post": {
+        "operationId": "create_cancellation_schedules__entry_id__cancellations_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancellationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancellationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Cancellation",
+        "tags": [
+          "Cambios de clase y avisos"
+        ]
+      }
+    },
+    "/schedules/{entry_id}/classroom": {
+      "patch": {
+        "operationId": "update_classroom_schedules__entry_id__classroom_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassroomChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleEntryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Classroom",
+        "tags": [
+          "Cambios de clase y avisos"
+        ]
+      }
+    },
+    "/seed": {
+      "post": {
+        "operationId": "load_seed_seed_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "reset",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Reset",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataset",
+            "required": false,
+            "schema": {
+              "default": "demo",
+              "title": "Dataset",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Load Seed",
+        "tags": [
+          "Datos de demostración"
+        ]
+      }
+    },
+    "/seed/backup": {
+      "delete": {
+        "description": "Keeps the demo data and forgets the copy.",
+        "operationId": "delete_backup_seed_backup_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Backup",
+        "tags": [
+          "Datos de demostración"
+        ]
+      },
+      "get": {
+        "description": "Whether there is a copy of the data replaced by the demo, when it was taken and what it holds.",
+        "operationId": "get_backup_seed_backup_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Backup",
+        "tags": [
+          "Datos de demostración"
+        ]
+      }
+    },
+    "/seed/restore": {
+      "post": {
+        "description": "Goes back to the data that was there before loading the demo.",
+        "operationId": "restore_seed_restore_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Restore",
+        "tags": [
+          "Datos de demostración"
+        ]
+      }
+    },
+    "/statistics": {
+      "get": {
+        "operationId": "get_statistics_statistics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Statistics",
+        "tags": [
+          "Análisis"
+        ]
+      }
+    },
+    "/subjects": {
+      "get": {
+        "operationId": "list_subjects_subjects_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SubjectOut"
+                  },
+                  "title": "Response List Subjects Subjects Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Subjects",
+        "tags": [
+          "Materias"
+        ]
+      },
+      "post": {
+        "operationId": "create_subject_subjects_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Subject",
+        "tags": [
+          "Materias"
+        ]
+      }
+    },
+    "/subjects/{subject_id}": {
+      "delete": {
+        "operationId": "delete_subject_subjects__subject_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Subject",
+        "tags": [
+          "Materias"
+        ]
+      },
+      "put": {
+        "operationId": "update_subject_subjects__subject_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Subject",
+        "tags": [
+          "Materias"
+        ]
+      }
+    },
+    "/teachers": {
+      "get": {
+        "operationId": "list_teachers_teachers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TeacherOut"
+                  },
+                  "title": "Response List Teachers Teachers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Teachers",
+        "tags": [
+          "Profesores"
+        ]
+      },
+      "post": {
+        "operationId": "create_teacher_teachers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Teacher",
+        "tags": [
+          "Profesores"
+        ]
+      }
+    },
+    "/teachers/{teacher_id}": {
+      "delete": {
+        "operationId": "delete_teacher_teachers__teacher_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teacher_id",
+            "required": true,
+            "schema": {
+              "title": "Teacher Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Teacher",
+        "tags": [
+          "Profesores"
+        ]
+      },
+      "put": {
+        "operationId": "update_teacher_teachers__teacher_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teacher_id",
+            "required": true,
+            "schema": {
+              "title": "Teacher Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Teacher",
+        "tags": [
+          "Profesores"
+        ]
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "list_users_users_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserOut"
+                  },
+                  "title": "Response List Users Users Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Users",
+        "tags": [
+          "Usuarios"
+        ]
+      },
+      "post": {
+        "operationId": "create_user_users_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create User",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    },
+    "/users/{user_id}": {
+      "delete": {
+        "operationId": "delete_user_users__user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete User",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    },
+    "/users/{user_id}/group": {
+      "patch": {
+        "description": "Moves a student to another group (for example when they pass to the next semester).",
+        "operationId": "change_group_users__user_id__group_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserGroupChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Change Group",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    }
+  }
+}
