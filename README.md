@@ -120,6 +120,27 @@ Las cuentas que existían antes del login por código quedan verificadas. La mig
 
 `POST /auth/register` con nombre, correo y grupo crea la cuenta del **estudiante** sin verificar y le envía un código; `GET /auth/register-options` da la lista de grupos. Responde `409` si el correo ya está verificado o es de un profesor o del personal: ellos solo inician sesión. Nadie se registra como administrador.
 
+## Contrato de la API (contract-first)
+
+La API REST se describe en un único archivo versionado, **`openapi.json`** (OpenAPI 3.1).
+- **Contenido:** rutas, parámetros, esquemas de entrada y salida, códigos de error y la seguridad JWT (`HTTPBearer`).
+- **Uso:** el frontend genera desde él sus tipos TypeScript y sus mocks, así que los dos lados pueden trabajar en paralelo.
+
+```
+python scripts/export_openapi.py          # regenera openapi.json
+python scripts/export_openapi.py --check  # falla si está desactualizado
+```
+
+El script importa la app contra SQLite en memoria, así que nunca toca la base real. La prueba `tests/test_contract.py` falla si `openapi.json` no coincide con lo que genera la app: ningún cambio de la API pasa sin actualizar el contrato.
+
+### Cómo agregar un endpoint (primero el contrato)
+
+1. **Esquema:** define en `schemas.py` los modelos Pydantic de entrada y de salida, con nombres y tipos explícitos.
+2. **Firma de la ruta:** declara la ruta en su router con `response_model=` y los códigos de error que puede devolver (`responses=`). No devuelvas diccionarios sueltos.
+3. **Contrato:** corre `python scripts/export_openapi.py` y revisa el diff de `openapi.json`. Ese diff es el cambio de contrato que se discute y se sube.
+4. **Frontend:** `npm run gen:api` actualiza los tipos generados. Si un campo cambió, el frontend deja de compilar hasta adaptarlo. Mientras tanto se puede avanzar con los mocks tipados.
+5. **Implementación:** escribe la lógica y sus pruebas. `pytest` incluye la verificación del contrato.
+
 ## Endpoints
 
 | Recurso | Endpoints | Acceso |
