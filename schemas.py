@@ -444,7 +444,7 @@ class ReadinessProblem(BaseModel):
     tipo: str
     mensaje: str
     seccion: Literal["aulas", "grupos", "profesores", "materias"]
-    profesor_id: int | None = None
+    profesor_id: int | None  # always sent: null when the problem is not about one teacher
 
 
 class ReadinessOut(BaseModel):

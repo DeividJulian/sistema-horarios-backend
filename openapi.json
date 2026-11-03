@@ -1006,7 +1006,8 @@
         "required": [
           "tipo",
           "mensaje",
-          "seccion"
+          "seccion",
+          "profesor_id"
         ],
         "title": "ReadinessProblem",
         "type": "object"
