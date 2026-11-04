@@ -125,10 +125,16 @@ def _to_assignments(blocks: list[Block]):
     return [(b.subject, b.classroom, b.day, time(hour=h)) for b in blocks for h in b.hours()]
 
 
-def improve_schedule(assignments, usable_slots, classrooms, groups, max_group_hours: int, classroom_fits, weekdays, seed: int = 7):
+# How often (in temperature steps) on_progress is called
+PROGRESS_EVERY_STEPS = 10
+
+
+def improve_schedule(assignments, usable_slots, classrooms, groups, max_group_hours: int, classroom_fits, weekdays, seed: int = 7,
+                     on_progress=None):
     """
     Returns (improved assignments, AnnealingStats). `usable_slots(subject)` gives the (day, time) slots where the
     subject may be taught; `classroom_fits(classroom, subject, students)` checks capacity and type.
+    `on_progress(stats, best_idle_hours)`, if given, is called every few temperature steps (it does not change the result).
     """
     started = clock.monotonic()
     rng = random.Random(seed)  # fixed seed: the same data always gives the same schedule
@@ -170,8 +176,10 @@ def improve_schedule(assignments, usable_slots, classrooms, groups, max_group_ho
 
     best = [Block(b.subject, b.classroom, b.day, b.start, b.length) for b in blocks]
     best_cost = current_cost
+    best_idle = stats.idle_before
     temperature = INITIAL_TEMPERATURE
     last_improvement = 0
+    temperature_steps = 0
 
     while (
         clock.monotonic() - started < TIME_BUDGET_SECONDS
@@ -214,11 +222,16 @@ def improve_schedule(assignments, usable_slots, classrooms, groups, max_group_ho
                     last_improvement = stats.iterations
                     best_cost = current_cost
                     best = [Block(b.subject, b.classroom, b.day, b.start, b.length) for b in blocks]
+                    if on_progress:
+                        best_idle = state.total_idle()
             else:
                 state._remove(block)
                 block.day, block.start, block.classroom = old
                 state._add(block)
         temperature *= COOLING
+        temperature_steps += 1
+        if on_progress and temperature_steps % PROGRESS_EVERY_STEPS == 0:
+            on_progress(stats, best_idle)
 
     final_state = _State(best)
     stats.idle_after = final_state.total_idle()

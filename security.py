@@ -36,15 +36,26 @@ def get_current_user(
         detail="Tu sesión no es válida o expiró. Inicia sesión de nuevo.",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    user = user_from_token(db, credentials.credentials)
+    if user is None:
+        raise unauthorized
+    return user
+
+
+def user_from_token(db: Session, token: str) -> User | None:
+    """The account behind a session token, or None if the token is invalid, expired or of an unverified account.
+
+    Shared by the REST dependencies and the RPC service (services/rpc.py), so both apply the same rules.
+    """
     try:
-        payload = jwt.decode(credentials.credentials, config.SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, config.SECRET_KEY, algorithms=[ALGORITHM])
         user_id = int(payload["sub"])
     except (jwt.PyJWTError, KeyError, ValueError):
-        raise unauthorized
+        return None
     user = db.get(User, user_id)
     # An account that never entered its first code can not be used yet
     if user is None or not user.verificado:
-        raise unauthorized
+        return None
     return user
 
 

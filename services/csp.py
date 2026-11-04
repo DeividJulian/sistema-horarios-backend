@@ -108,11 +108,14 @@ def _availability_shortage(subjects, usable_slots, classrooms):
     return None
 
 
-def compute_assignments(db: Session, stats: dict | None = None, improve: bool = True):
+def compute_assignments(db: Session, stats: dict | None = None, improve: bool = True, progress=None):
     """
     CSP (backtracking) for a valid schedule, then simulated annealing (services/annealing.py) to reduce idle hours.
     Returns (success, assignments, message); `stats` receives the figures of the metaheuristic phase.
+    `progress(phase, **figures)`, if given, reports each phase as it runs (used by the RPC stream; it does not
+    change the result): "preparing", "csp" (placed, total), "annealing" (iterations, idle, idle_before, improvements).
     """
+    report = progress or (lambda phase, **figures: None)
     subjects = db.query(Subject).all()
     classrooms = db.query(Classroom).all()
     groups = {g.id: g for g in db.query(StudentGroup).all()}
@@ -164,6 +167,8 @@ def compute_assignments(db: Session, stats: dict | None = None, improve: bool = 
     )
 
     deadline = clock.monotonic() + TIME_LIMIT_SECONDS
+    report("preparing", subjects=len(ordered_subjects), classrooms=len(classrooms))
+    deepest = [0]  # subjects placed so far (backtracking goes up and down; only new depths are reported)
 
     busy_teacher = set()
     busy_classroom = set()
@@ -172,6 +177,9 @@ def compute_assignments(db: Session, stats: dict | None = None, improve: bool = 
     result = []
 
     def assign_subject(index):
+        if index > deepest[0]:
+            deepest[0] = index
+            report("csp", placed=index, total=len(ordered_subjects))
         if index == len(ordered_subjects):
             return True
 
@@ -276,9 +284,18 @@ def compute_assignments(db: Session, stats: dict | None = None, improve: bool = 
     if not improve:
         return True, list(result), "OK"
 
+    def annealing_progress(figures, best_idle):
+        report(
+            "annealing", iterations=figures.iterations, idle=best_idle, idle_before=figures.idle_before,
+            improvements=figures.improvements,
+        )
+
     improved, annealing = improve_schedule(
-        list(result), usable_slots, classrooms, groups, MAX_GROUP_HOURS_PER_DAY, classroom_fits, WEEKDAYS
+        list(result), usable_slots, classrooms, groups, MAX_GROUP_HOURS_PER_DAY, classroom_fits, WEEKDAYS,
+        on_progress=annealing_progress if progress else None,
     )
+    report("annealing", iterations=annealing.iterations, idle=annealing.idle_after, idle_before=annealing.idle_before,
+           improvements=annealing.improvements)
     if stats is not None:
         stats.update(
             {
