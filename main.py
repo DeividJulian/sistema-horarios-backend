@@ -15,6 +15,7 @@ from migrations import apply_migrations
 from routers import ai, analysis, auth, availability, class_changes, classrooms, groups, schedules, seed, subjects, teachers, users
 from schemas import ErrorOut, HealthOut, RootOut
 from security import authorize
+from services.rpc import create_rpc_app
 from services.users import ensure_admin, sync_accounts
 
 logging.basicConfig(
@@ -81,15 +82,35 @@ for data_router in (teachers, availability, classrooms, groups, subjects, schedu
     app.include_router(data_router.router, dependencies=[Depends(authorize)], responses=errors(401, 403, 404, 409, 422))
 
 
+# RPC (Connect / gRPC, contract in proto/horarios/v1/horarios.proto): same logic, sessions and roles as REST.
+# Browsers call it with the Connect protocol (Protobuf over HTTP/1.1, with server streaming).
+app.mount("/rpc", create_rpc_app())
+
+
 # ---------- LOGGING: every request is logged with method, path, status code and duration ----------
 
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    started = time.perf_counter()
-    response = await call_next(request)
-    ms = (time.perf_counter() - started) * 1000
-    logger.info("%s %s -> %s (%.0f ms)", request.method, request.url.path, response.status_code, ms)
-    return response
+class RequestLogMiddleware:
+    """Pure ASGI middleware: it forwards every message untouched (HTTP trailers included, which gRPC needs for its
+    status; Starlette's @app.middleware("http") drops them) and logs when the response starts."""
+
+    def __init__(self, inner):
+        self.inner = inner
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.inner(scope, receive, send)
+        started = time.perf_counter()
+
+        async def send_and_log(message):
+            if message["type"] == "http.response.start":
+                ms = (time.perf_counter() - started) * 1000
+                logger.info("%s %s -> %s (%.0f ms)", scope["method"], scope["path"], message["status"], ms)
+            await send(message)
+
+        await self.inner(scope, receive, send_and_log)
+
+
+app.add_middleware(RequestLogMiddleware)
 
 
 # ---------- UNIFORM ERROR HANDLING: every error response has the shape {"detail": "text"} ----------

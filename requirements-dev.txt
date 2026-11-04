@@ -4,3 +4,5 @@ httpx
 # Code generation of proto/ (python scripts/gen_proto.py)
 grpcio-tools==1.85.1
 protoc-gen-connect-python==0.9.0
+# HTTP/2 server used by the native gRPC test (tests/test_rpc.py)
+hypercorn==0.18.0
