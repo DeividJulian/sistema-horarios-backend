@@ -26,3 +26,13 @@ def test_contract_describes_jwt_security():
     assert contract["components"]["securitySchemes"]["HTTPBearer"] == {"type": "http", "scheme": "bearer"}
     assert contract["paths"]["/teachers"]["get"]["security"] == [{"HTTPBearer": []}]
     assert "security" not in contract["paths"]["/auth/login"]["post"]  # public
+
+
+def test_generated_rpc_code_is_up_to_date():
+    """proto/horarios/v1/horarios.proto is the RPC contract: its generated Python code must match it."""
+    import subprocess
+    import sys
+
+    script = Path(__file__).resolve().parent.parent / "scripts" / "gen_proto.py"
+    result = subprocess.run([sys.executable, str(script), "--check"], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr

@@ -1,0 +1,78 @@
+// Contract of the RPC API of the schedule system (Protobuf). Versioned like openapi.json: change it first, then
+// regenerate the code (backend: scripts/gen_proto.py · frontend: npm run gen:proto) and implement.
+//
+// Served with Connect (connectrpc.com) inside the same FastAPI app, under /rpc: browsers use the Connect protocol
+// (Protobuf binary over HTTP/1.1, with server streaming); gRPC clients over HTTP/2 can call the same service.
+syntax = "proto3";
+
+package horarios.v1;
+
+// Generation of the schedule (CSP + simulated annealing) and the schedule itself.
+service ScheduleService {
+  // Generates and saves the schedule, streaming the real progress of each phase. Administrators only.
+  rpc GenerateSchedule(GenerateScheduleRequest) returns (stream GenerationEvent);
+
+  // The weekly schedule: the same data as GET /schedules (a student only gets their group's).
+  rpc ListSchedule(ListScheduleRequest) returns (ListScheduleResponse);
+}
+
+message GenerateScheduleRequest {}
+
+enum Phase {
+  PHASE_UNSPECIFIED = 0;
+  // Reading subjects, classrooms, groups and availability
+  PHASE_PREPARING = 1;
+  // CSP with backtracking: subjects placed without clashes
+  PHASE_CSP = 2;
+  // Simulated annealing: moves blocks to reduce idle hours
+  PHASE_ANNEALING = 3;
+  // Writing the new schedule to the database
+  PHASE_SAVING = 4;
+  // Finished: the event carries the result
+  PHASE_DONE = 5;
+}
+
+// One step of the generation. The fields that apply depend on the phase.
+message GenerationEvent {
+  Phase phase = 1;
+  // Text for the user, in Spanish
+  string message = 2;
+  // CSP: subjects placed so far, out of total_subjects
+  int32 subjects_placed = 3;
+  int32 total_subjects = 4;
+  // Annealing: iterations done, idle hours now (and at the start), accepted improvements
+  int32 iterations = 5;
+  int32 idle_hours = 6;
+  int32 idle_hours_before = 7;
+  int32 improvements = 8;
+  // Seconds since the generation started
+  double elapsed_seconds = 9;
+  // DONE: number of one-hour blocks saved
+  int32 total_blocks = 10;
+}
+
+message ListScheduleRequest {}
+
+enum Weekday {
+  WEEKDAY_UNSPECIFIED = 0;
+  WEEKDAY_LUNES = 1;
+  WEEKDAY_MARTES = 2;
+  WEEKDAY_MIERCOLES = 3;
+  WEEKDAY_JUEVES = 4;
+  WEEKDAY_VIERNES = 5;
+}
+
+// One-hour block of the schedule (same fields as ScheduleEntryOut in openapi.json).
+message ScheduleEntry {
+  int32 id = 1;
+  int32 subject_id = 2;
+  int32 classroom_id = 3;
+  Weekday weekday = 4;
+  // Hour of the day: 8 means 08:00 (the block ends one hour later)
+  int32 start_hour = 5;
+  int32 end_hour = 6;
+}
+
+message ListScheduleResponse {
+  repeated ScheduleEntry entries = 1;
+}
