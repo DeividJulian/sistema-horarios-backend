@@ -27,6 +27,8 @@ backend/
 ├── database.py          # Conexión y sesión de base de datos
 ├── models.py            # Tablas (SQLAlchemy)
 ├── schemas.py           # Validación de entrada/salida (Pydantic)
+├── proto/               # Contrato RPC (.proto) y su código generado
+├── scripts/             # export_openapi.py, gen_proto.py, benchmark_protocols.py
 ├── routers/             # Endpoints agrupados por recurso (teachers, classrooms, schedules, ...)
 ├── services/
 │   ├── csp.py           # Algoritmo de generación de horarios
@@ -38,6 +40,8 @@ backend/
 │   ├── llm.py           # Cliente de IA independiente del proveedor (Groq por defecto)
 │   ├── privacy.py       # Quita nombres, correos y teléfonos antes de hablar con la IA
 │   ├── ai.py            # Usos de la IA: resolver un conflicto y redactar avisos
+│   ├── generation.py    # Generar y guardar el horario (lo usan REST y RPC)
+│   ├── rpc.py           # Servicio Connect/gRPC del .proto, montado en /rpc
 │   └── users.py         # Primer administrador y una cuenta por profesor
 └── tests/               # Pruebas automatizadas
 ```
@@ -229,6 +233,73 @@ La IA **solo aconseja**: nunca cambia datos por su cuenta.
 - proveedor caído, lento o con una respuesta inválida: `502`. Se reintenta una vez si responde `5xx`.
 
 Las pruebas simulan el HTTP de Groq, así que nunca llaman a la API real.
+
+## gRPC (Protobuf) con Connect
+
+Además de REST, el backend expone un servicio RPC definido en **`proto/horarios/v1/horarios.proto`**, el contrato versionado. Lo sirve [Connect](https://connectrpc.com) dentro de la misma app FastAPI, en **`/rpc`**: el mismo servicio de Render y el mismo puerto, sin proxy.
+
+| RPC | Tipo | Qué hace |
+|---|---|---|
+| `GenerateSchedule` | *server streaming* | Genera y guarda el horario y transmite el progreso real: preparar → CSP (materias asignadas) → recocido simulado (horas muertas) → guardar → listo. Solo administradores. Si el cliente cancela, se detiene **antes de guardar**. |
+| `ListSchedule` | unaria | El horario semanal, con los mismos datos que `GET /schedules`. Un estudiante solo recibe el de su grupo. |
+
+- **Lógica reutilizada:** `services/rpc.py` llama a lo mismo que REST: `generate_and_save` y `schedule_for` (`services/generation.py`), y `user_from_token` (`security.py`). REST sigue igual como respaldo.
+- **Seguridad:** el JWT viaja en la metadata (`Authorization: Bearer <token>`), con las mismas reglas.
+  - Sin token, o con token inválido o vencido: `unauthenticated`.
+  - Sin rol de administrador al generar: `permission_denied`.
+  - Datos sin solución: `failed_precondition`.
+  - Error inesperado: `internal`, sin detalles.
+- **Código generado:**
+  - `python scripts/gen_proto.py` genera `horarios_pb2.py` y `horarios_connect.py` con protoc de `grpcio-tools` y `protoc-gen-connect-python`. Nada de eso se edita a mano.
+  - `tests/test_contract.py` falla si quedó desactualizado.
+  - El frontend genera su cliente con `npm run gen:proto`.
+- **Pruebas (`tests/test_rpc.py`):**
+  - con el protocolo Connect: éxito, fases del stream, datos iguales a REST, estudiante limitado a su grupo, 401, 403 y horario imposible;
+  - **gRPC real sobre HTTP/2** con el cliente generado contra Hypercorn.
+- **Middleware de logging:** pasó a ser ASGI puro, porque el `@app.middleware("http")` de Starlette descartaba los *trailers* HTTP donde gRPC envía su estado.
+
+### Por qué Connect y no gRPC-Web con Envoy
+
+Los navegadores no pueden hablar gRPC nativo: no exponen los *trailers* de HTTP/2. Hay dos caminos:
+
+| Opción | Qué necesita | En este proyecto |
+|---|---|---|
+| gRPC-Web + Envoy | Un proxy Envoy que traduzca a gRPC, como segundo servicio | Otra instancia en Render, que se duerme en el plan gratis. Además, el servidor Connect para Python no implementa gRPC-Web. |
+| **Connect (connectrpc)** | Nada extra: el servidor habla Connect y gRPC; el cliente web usa `fetch` | El mismo `.proto` y Protobuf binario, con *server streaming* sobre HTTP/1.1 desde el navegador. **Elegido.** |
+
+Render termina TLS y reenvía las peticiones a la app por HTTP ([docs](https://render.com/docs/web-services)). Su comunidad [reporta](https://community.render.com/t/unexpected-http-1-x-request/7359) que el gRPC nativo de clientes externos no está totalmente soportado, porque las peticiones llegan como HTTP/1.x. Por eso:
+- **En producción, el navegador usa el protocolo Connect con Protobuf** (`application/connect+proto`).
+- **El gRPC nativo (HTTP/2)** funciona entre servidores o en local, y está demostrado en las pruebas.
+
+### REST (JSON) vs gRPC (Protobuf): resultados
+
+Son los mismos datos: el horario de la facultad de prueba (8 semestres, 45 materias).
+
+`python scripts/benchmark_protocols.py` mide sin red, con la mediana de 300 repeticiones. La segunda columna es el mismo horario repetido 10 veces, como una universidad completa.
+
+| Medida | 130 bloques | 1300 bloques |
+|---|---|---|
+| JSON (REST) | 14.013 B | 147.204 B |
+| Protobuf (gRPC) | 1.823 B | 21.713 B |
+| JSON con gzip | 1.169 B | 8.171 B |
+| Protobuf con gzip | 762 B | 6.345 B |
+| Codificar JSON / Protobuf | 75 µs / 5 µs | 664 µs / 62 µs |
+| Decodificar JSON / Protobuf | 94 µs / 5 µs | 1.042 µs / 46 µs |
+
+- **Tamaño:** Protobuf ocupa **7,7× menos** que JSON (130 bloques) y 6,8× menos (1300). Con gzip la ventaja baja a 1,3–1,5×, porque gzip comprime muy bien las claves repetidas de JSON.
+- **Velocidad:** codificar y decodificar Protobuf es **10–20× más rápido**.
+- **En el navegador:** la página **Análisis → «REST (JSON) vs gRPC (Protobuf)»** mide lo mismo contra el servidor real y con la sesión del usuario. En local dio 14.013 B frente a 1.823 B y 19 ms frente a 15 ms de mediana. Con pocos datos, el tiempo lo domina la red.
+
+### Cuándo conviene cada paradigma
+
+| Opción | Conviene cuando | Aquí |
+|---|---|---|
+| **REST + OpenAPI** | Recursos CRUD, caché HTTP, cualquier cliente, depuración con el navegador | Toda la API: gestión, horario, análisis, IA |
+| **GraphQL** | Muchos clientes que necesitan formas distintas de un grafo de datos | No: un solo cliente y pantallas que coinciden con los recursos |
+| **gRPC-Web / Connect** | Contrato estricto, mensajes binarios pequeños, *streaming* del servidor al navegador | La generación con progreso en vivo y el horario en Protobuf |
+| **tRPC** | Backend y frontend en TypeScript, que comparten tipos sin contrato aparte | No aplica: el backend es Python |
+
+Se eligió **REST como base** (con OpenAPI como contrato y Zod en el cliente) **y Connect para lo que REST hace mal**: transmitir el progreso de una tarea larga y enviar el horario en un formato compacto y tipado.
 
 ## Datos de demostración
 
