@@ -6,6 +6,8 @@ os.environ["SECRET_KEY"] = "test-secret-for-pytest-only-0123456789abcdef"
 # Emails stay in memory (services.mailer.OUTBOX); no wait between codes unless a test asks for it
 os.environ["EMAIL_BACKEND"] = "memoria"
 os.environ["CODIGO_ESPERA_SEGUNDOS"] = "0"
+# The demo accounts (password login) are off unless a test turns them on (tests/test_demo_accounts.py)
+os.environ["DEMO_ACCOUNTS"] = "false"
 # Blank values win over a developer's .env (load_dotenv doesn't override): no real admin, no real AI provider
 for _name in ("ADMIN_EMAIL", "AI_PROVIDER", "AI_API_KEY", "AI_MODEL", "AI_BASE_URL"):
     os.environ[_name] = ""

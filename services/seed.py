@@ -2,6 +2,7 @@ from datetime import time
 
 from sqlalchemy.orm import Session
 
+import config
 from models import Cancellation, Classroom, Notification, TeacherAvailability, StudentGroup, ScheduleEntry, Subject, Teacher, User
 from services.csp import shift_range
 
@@ -22,9 +23,15 @@ def delete_all(db: Session) -> None:
     db.commit()
 
 
+def _demo_teacher_email(email: str) -> str:
+    """With the demo accounts on, one teacher of each dataset uses the demo teacher email, so profesor@gmail.com
+    has classes to show after loading the data."""
+    return config.DEMO_TEACHER_EMAIL if config.DEMO_ACCOUNTS else email
+
+
 def load_demo_data(db: Session) -> dict:
     teachers = [
-        Teacher(nombre="Carlos Mendoza", email="carlos.mendoza@ucc.edu.co"),
+        Teacher(nombre="Carlos Mendoza", email=_demo_teacher_email("carlos.mendoza@ucc.edu.co")),
         Teacher(nombre="Laura Giraldo", email="laura.giraldo@ucc.edu.co"),
         Teacher(nombre="Andrés Ruiz", email="andres.ruiz@ucc.edu.co"),
         Teacher(nombre="Marcela Torres", email="marcela.torres@ucc.edu.co"),
@@ -174,7 +181,7 @@ SEMESTERS = [
 def load_faculty_data(db: Session) -> dict:
     """Loads the 8 semesters. Each teacher is available during the shifts of the groups they teach."""
     classrooms = [Classroom(nombre=n, aforo=c, tipo=t) for n, c, t in FACULTY_CLASSROOMS]
-    teachers = {k: Teacher(nombre=n, email=e) for k, (n, e) in FACULTY_TEACHERS.items()}
+    teachers = {k: Teacher(nombre=n, email=_demo_teacher_email(e) if k == "prog" else e) for k, (n, e) in FACULTY_TEACHERS.items()}
     groups = [StudentGroup(nombre=n, num_estudiantes=st, jornada=sh) for n, sh, st, _ in SEMESTERS]
     db.add_all(classrooms + list(teachers.values()) + groups)
     db.flush()

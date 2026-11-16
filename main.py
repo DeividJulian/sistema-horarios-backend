@@ -16,7 +16,7 @@ from routers import ai, analysis, auth, availability, class_changes, classrooms,
 from schemas import ErrorOut, HealthOut, RootOut
 from security import authorize
 from services.rpc import create_rpc_app
-from services.users import ensure_admin, sync_accounts
+from services.users import ensure_admin, ensure_demo_accounts, sync_accounts
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,6 +29,7 @@ Base.metadata.create_all(bind=engine)
 apply_migrations(engine)
 with SessionLocal() as session:
     ensure_admin(session)  # first administrator from ADMIN_EMAIL
+    ensure_demo_accounts(session)  # administrador@gmail.com and profesor@gmail.com, with the demo password
     sync_accounts(session)  # one account per teacher
 
 # Error codes each group of routes can answer, all with the shape {"detail": "text"} (see the handlers below)

@@ -950,6 +950,28 @@
         "title": "OptimizationReport",
         "type": "object"
       },
+      "PasswordLoginRequest": {
+        "description": "Only the demo accounts (DEMO_ADMIN_EMAIL, DEMO_TEACHER_EMAIL) enter with a password.",
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "PasswordLoginRequest",
+        "type": "object"
+      },
       "ReadinessOut": {
         "properties": {
           "listo": {
@@ -2242,6 +2264,118 @@
           }
         ],
         "summary": "Me",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/auth/password-login": {
+      "post": {
+        "description": "Demo accounts only: email + the demo password return the session token, without an emailed code.",
+        "operationId": "password_login_auth_password_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Solicitud incorrecta (por ejemplo, un código de verificación inválido o vencido)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Sin sesión, o token inválido o vencido"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "El recurso no existe"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflicto con los datos actuales (duplicado, cruce de horario, etc.)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Datos de entrada inválidos"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Demasiadas solicitudes (espera entre códigos o límite de la IA)"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Error interno de la base de datos"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Falló un servicio externo (correo o IA)"
+          }
+        },
+        "summary": "Password Login",
         "tags": [
           "Autenticación"
         ]

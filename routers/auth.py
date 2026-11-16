@@ -1,3 +1,4 @@
+import hmac
 import logging
 from typing import List
 
@@ -5,9 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+import config
 from database import get_db
 from models import StudentGroup, Teacher, User
-from schemas import CodeSent, LoginRequest, RegisterGroup, RegisterRequest, TokenOut, UserOut, VerifyRequest
+from schemas import CodeSent, LoginRequest, PasswordLoginRequest, RegisterGroup, RegisterRequest, TokenOut, UserOut, VerifyRequest
 from security import create_token, get_current_user
 from services.codes import CodeCooldown, InvalidCode, check_code, find_user, issue_code, normalize_email, send_code
 from services.mailer import MailError
@@ -46,6 +48,8 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     and teachers already have an account with the email the administrator registered: they just sign in.
     """
     email = normalize_email(data.email)
+    if email in config.demo_emails():
+        raise HTTPException(status_code=409, detail="Ese correo es de una cuenta de demostración: inicia sesión con la contraseña.")
     user = find_user(db, email)
     if user and user.verificado:
         raise HTTPException(status_code=409, detail="Ya existe una cuenta con ese correo. Inicia sesión.")
@@ -71,6 +75,9 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
 @router.post("/login", response_model=CodeSent)
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     """Emails a one-time code to enter."""
+    if normalize_email(data.email) in config.demo_emails():
+        # Their inboxes are not ours: never email a code to them
+        raise HTTPException(status_code=400, detail="Esta es una cuenta de demostración: entra con la contraseña.")
     user = find_user(db, data.email)
     if user is None:
         raise HTTPException(
@@ -79,6 +86,28 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         )
     _send_new_code(db, user, "login")
     return {"mensaje": "Te enviamos un código para entrar.", "email": user.email}
+
+
+@router.post("/password-login", response_model=TokenOut)
+def password_login(data: PasswordLoginRequest, db: Session = Depends(get_db)):
+    """Demo accounts only: email + the demo password return the session token, without an emailed code."""
+    email = normalize_email(data.email)
+    wrong = HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
+    if email not in config.demo_emails():
+        raise wrong
+    if not hmac.compare_digest(data.password.encode(), config.DEMO_PASSWORD.encode()):
+        raise wrong
+    user = find_user(db, email)
+    if user is None:
+        raise HTTPException(
+            status_code=404,
+            detail="La cuenta de demostración todavía no existe: carga los datos de demostración o registra ese profesor.",
+        )
+    user.verificado = True
+    db.commit()
+    db.refresh(user)
+    logger.info("Login con contraseña de demostración: %s (%s)", user.email, user.rol)
+    return {"access_token": create_token(user), "token_type": "bearer", "usuario": user}
 
 
 @router.post("/verify", response_model=TokenOut)

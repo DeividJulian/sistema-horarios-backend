@@ -170,6 +170,13 @@ class LoginRequest(BaseModel):
     email: EmailStr
 
 
+class PasswordLoginRequest(BaseModel):
+    """Only the demo accounts (DEMO_ADMIN_EMAIL, DEMO_TEACHER_EMAIL) enter with a password."""
+
+    email: EmailStr
+    password: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+
+
 class VerifyRequest(BaseModel):
     email: EmailStr
     codigo: Code

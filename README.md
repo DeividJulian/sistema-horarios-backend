@@ -82,7 +82,7 @@ La documentación interactiva queda en `http://127.0.0.1:8000/docs`.
 
 ## Inicio de sesión y roles
 
-Todos los endpoints de datos exigen iniciar sesión. **No hay contraseñas:** la persona escribe su correo, recibe un código de 6 dígitos y entra con él. El token se envía en la cabecera `Authorization: Bearer <token>` y dura `TOKEN_HORAS` (8 por defecto).
+Todos los endpoints de datos exigen iniciar sesión. **No hay contraseñas** (salvo las dos cuentas de prueba de abajo): la persona escribe su correo, recibe un código de 6 dígitos y entra con él. El token se envía en la cabecera `Authorization: Bearer <token>` y dura `TOKEN_HORAS` (8 por defecto).
 
 | Rol | Qué puede hacer |
 |---|---|
@@ -90,6 +90,21 @@ Todos los endpoints de datos exigen iniciar sesión. **No hay contraseñas:** la
 | `profesor` | Ver el horario y, en **sus propias clases**, cancelar una fecha (con motivo) o cambiar el aula. Cada cambio genera un aviso para el grupo. |
 | `estudiante` | Ver solo el horario de **su grupo** (el backend filtra `GET /schedules`), sus cancelaciones y sus avisos. No accede al análisis de la facultad. |
 | `usuario` | Consulta: ver todo sin modificar nada. |
+
+### Cuentas de prueba
+
+Para presentar el proyecto hay dos cuentas que entran con **contraseña**, porque esos buzones no son nuestros y el código nunca llegaría:
+
+| Rol | Correo | Contraseña |
+|---|---|---|
+| Administrador | `administrador@gmail.com` | `demo123` |
+| Profesor | `profesor@gmail.com` | `demo123` |
+| Estudiante | La cuenta de estudiante que ya existe (correo de Deivid) | No usa contraseña: entra con el código de 6 dígitos que llega a su correo |
+
+- `POST /auth/password-login` con `{"email", "password"}` devuelve el token. Solo funciona con esas dos cuentas; cualquier otra responde `401`.
+- A esos correos nunca se les envía un código: `/auth/login` responde `400` y `/auth/register` `409`.
+- La cuenta de administrador se crea sola al arrancar. El profesor es el profesor con el correo `profesor@gmail.com`: al cargar los datos de demostración o de la facultad, un profesor recibe ese correo (Carlos Mendoza o Fernando Salas) y tiene clases. Si ya hay datos sin ese profesor, al arrancar se crea «Profesor (demo)» sin materias, y el administrador le asigna las que quiera.
+- Se configuran con `DEMO_ACCOUNTS` (`true` por defecto), `DEMO_ADMIN_EMAIL`, `DEMO_TEACHER_EMAIL` y `DEMO_PASSWORD`. **Después de la presentación conviene poner `DEMO_ACCOUNTS=false` en Render**, porque la contraseña es pública.
 
 ### Código por correo
 

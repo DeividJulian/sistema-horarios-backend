@@ -36,3 +36,16 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 # First administrator: created at startup with this email if the account doesn't exist yet
 ADMIN_EMAIL = (os.getenv("ADMIN_EMAIL") or "").strip().lower()
 ADMIN_NAME = os.getenv("ADMIN_NAME") or "Administrador"
+
+# Demo accounts for presenting the project: they enter with a password instead of an emailed code, because
+# their inboxes are not ours. The password is public on purpose (it is in the README); DEMO_ACCOUNTS=false
+# turns both accounts off after the presentation.
+DEMO_ACCOUNTS = os.getenv("DEMO_ACCOUNTS", "true").strip().lower() not in ("0", "false", "no", "")
+DEMO_ADMIN_EMAIL = (os.getenv("DEMO_ADMIN_EMAIL") or "administrador@gmail.com").strip().lower()
+DEMO_TEACHER_EMAIL = (os.getenv("DEMO_TEACHER_EMAIL") or "profesor@gmail.com").strip().lower()
+DEMO_PASSWORD = os.getenv("DEMO_PASSWORD") or "demo123"
+
+
+def demo_emails() -> set[str]:
+    """Emails that enter with the demo password (none when the demo accounts are off)."""
+    return {DEMO_ADMIN_EMAIL, DEMO_TEACHER_EMAIL} if DEMO_ACCOUNTS else set()
