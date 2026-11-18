@@ -357,8 +357,7 @@ class RootOut(BaseModel):
 
 
 class HealthOut(BaseModel):
-    estado: str
-    base_de_datos: str
+    status: str
 
 
 # ---------- Generation, analysis and demo data ----------

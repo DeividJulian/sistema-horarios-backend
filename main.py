@@ -150,7 +150,16 @@ def root():
     return {"mensaje": "API Sistema de Horarios funcionando"}
 
 
-@app.get("/health", response_model=HealthOut)
+@app.get(
+    "/health",
+    response_model=HealthOut,
+    responses={503: {"model": HealthOut, "description": "La base de datos no responde"}},
+)
 def health(db: Session = Depends(get_db)):
-    db.execute(text("SELECT 1"))
-    return {"estado": "ok", "base_de_datos": "conectada"}
+    """Para el monitoreo: comprueba la conexión con la base de datos. Es pública y no devuelve datos."""
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as exc:  # a health check must never answer an uncontrolled 500
+        logger.error("Health check: the database is not responding", exc_info=exc)
+        return JSONResponse(status_code=503, content={"status": "error"})
+    return {"status": "ok"}

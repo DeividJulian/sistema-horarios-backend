@@ -1,5 +1,5 @@
 def test_health(client):
-    assert client.get("/health").json() == {"estado": "ok", "base_de_datos": "conectada"}
+    assert client.get("/health").json() == {"status": "ok"}
 
 
 def create_teacher(client, name="Ana Pérez", email="ana@ucc.edu.co"):

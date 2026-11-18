@@ -719,18 +719,13 @@
       },
       "HealthOut": {
         "properties": {
-          "base_de_datos": {
-            "title": "Base De Datos",
-            "type": "string"
-          },
-          "estado": {
-            "title": "Estado",
+          "status": {
+            "title": "Status",
             "type": "string"
           }
         },
         "required": [
-          "estado",
-          "base_de_datos"
+          "status"
         ],
         "title": "HealthOut",
         "type": "object"
@@ -4140,6 +4135,7 @@
     },
     "/health": {
       "get": {
+        "description": "Para el monitoreo: comprueba la conexión con la base de datos. Es pública y no devuelve datos.",
         "operationId": "health_health_get",
         "responses": {
           "200": {
@@ -4161,6 +4157,16 @@
               }
             },
             "description": "Error interno de la base de datos"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            },
+            "description": "La base de datos no responde"
           }
         },
         "summary": "Health"
